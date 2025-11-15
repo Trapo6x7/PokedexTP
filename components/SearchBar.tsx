@@ -24,7 +24,7 @@ export function SearchBar({ value, onChange }: Props) {
         onChangeText={onChange}
         value={value}
         placeholderTextColor={colors.grayMedium}
-        placeholder="Rechercher un Pokémon"
+        placeholder="Search..."
       />
     </Row>
   );
@@ -34,7 +34,8 @@ const styles = StyleSheet.create({
   wrapper: { flex: 1, borderRadius: 16, height: 32, paddingHorizontal: 12 },
   input: { 
     flex: 1, 
-    fontSize: 10, 
-    lineHeight: 20,
+    fontSize: 10,
+    paddingVertical: 0,
+    textAlignVertical: 'center',
   },
 });
