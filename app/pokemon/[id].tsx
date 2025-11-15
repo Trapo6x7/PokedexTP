@@ -47,17 +47,20 @@ export default function Pokemon() {
     sound.playAsync();
   };
 
+  const { data: pokemonListMeta } = useFetchQuery("/pokemon?limit=21");
+  const totalPokemon = pokemonListMeta?.count ?? 1025;
+
   const onPrevious = () =>
     router.setParams({
       id: String(Math.max(id - 1, 1)),
     });
   const onNext = () =>
     router.setParams({
-      id: String(Math.min(id + 1, 1025)),
+      id: String(Math.min(id + 1, totalPokemon)),
     });
 
     const isFirst = id === 1;
-    const isLast = id === 1025;
+    const isLast = id === totalPokemon;
 
   return (
     <RootView bakcgroundColor={colorType}>
