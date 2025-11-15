@@ -255,7 +255,24 @@ export default function Pokemon() {
             </Row>
 
             {/* Stats*/}
-            <ThemedText style={{ alignItems: "center" }}>{bio}</ThemedText>
+            <Row style={{ alignItems: "center", gap: 8 }}>
+              {/* Build a list of available items and render separators between them */}
+              {(() => {
+                const parts = [pokemon?.name?.en, pokemon?.name?.jp, bio].filter(Boolean);
+                return (
+                  <Row gap={6} style={{ alignItems: "center" }}>
+                    {parts.map((part, i) => (
+                      <Row key={`part-${i}`} gap={6} style={{ alignItems: "center" }}>
+                        <ThemedText color="grayMedium" variant="subtitle3">{part}</ThemedText>
+                        {i < parts.length - 1 && (
+                          <ThemedText color="grayMedium" variant="subtitle3" style={{ opacity: 0.6 }}>•</ThemedText>
+                        )}
+                      </Row>
+                    ))}
+                  </Row>
+                );
+              })()}
+            </Row>
             <ThemedText variant="subtitle1" style={{ color: colorType }}>
               Statistiques de base
             </ThemedText>
