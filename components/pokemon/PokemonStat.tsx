@@ -15,6 +15,8 @@ type Props = ViewProps & {
 
 function statShortName(name: string) : string {
   return name
+  .replaceAll("spe-atk", "SATK")
+  .replaceAll("spe-def", "SDEF")
   .replaceAll("special", "S")
   .replaceAll("-", " ")
   .replaceAll("attack", "ATK")

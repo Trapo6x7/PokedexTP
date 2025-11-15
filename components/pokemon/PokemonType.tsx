@@ -4,11 +4,14 @@ import { ThemedText } from "../ThemedText";
 ;
 
 type Props = {
-  name: keyof (typeof Colors)["type"];
+  name: string;
 };
 export function PokemonType({ name }: Props) {
+  const typeName = name.toLowerCase();
+  const color = Colors.type[typeName as keyof typeof Colors.type] || Colors.type.normal;
+  
   return (
-    <View style={[rootStyle, {backgroundColor: Colors.type[name]}]}>
+    <View style={[rootStyle, {backgroundColor: color}]}>
       <ThemedText color="grayWhite" variant="subtitle3">
         {name ? name.charAt(0).toUpperCase() + name.slice(1) : ""}
       </ThemedText>

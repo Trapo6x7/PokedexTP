@@ -24,7 +24,7 @@ export function SearchBar({ value, onChange }: Props) {
         onChangeText={onChange}
         value={value}
         placeholderTextColor={colors.grayMedium}
-        placeholder="Search..."
+        placeholder="Rechercher..."
       />
     </Row>
   );

@@ -9,12 +9,24 @@ type Props = {
   style?: ViewStyle;
   id: number;
   name: string;
+  region?: string | null;
+  nameSlug?: string | null;
+  spriteUrl?: string;
 };
 
-export function PokemonCard({ style, id, name }: Props) {
+export function PokemonCard({ style, id, name, region, nameSlug, spriteUrl }: Props) {
   const colors = useThemeColors();
+  
+  // Build the correct href based on whether it's a regional form
+  const href = region && nameSlug 
+    ? { pathname: "/pokemon/[name]/[region]" as const, params: { name: nameSlug, region: region } }
+    : { pathname: "/pokemon/[id]" as const, params: { id: id } };
+  
+  // Use provided sprite URL or fallback to getPokemonArtwork
+  const imageUrl = spriteUrl || getPokemonArtwork(id);
+  
   return (
-    <Link href={{ pathname: "/pokemon/[id]", params: { id: id } }} asChild>
+    <Link href={href} asChild>
       <Pressable
         android_ripple={{ color: colors.tint, foreground: true }}
         style={style}
@@ -28,7 +40,7 @@ export function PokemonCard({ style, id, name }: Props) {
           </ThemedText>
           <Image
             source={{
-              uri: getPokemonArtwork(id),
+              uri: imageUrl,
             }}
             style={{ width: 72, height: 72 }}
           />

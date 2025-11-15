@@ -1,6 +1,6 @@
 export const Colors = {
   light: {
-    tint: "#DC0A2D",
+    tint: "#ff0000ff",
     grayDark: "#212121",
     grayMedium: "#666666",
     grayLight: "#e0e0e0",
@@ -8,7 +8,7 @@ export const Colors = {
     grayWhite: "#ffffff",
   },
   dark: {
-    tint: "#DC0A2D",
+    tint: "#ff0000ff",
     grayDark: "#212121",
     grayMedium: "#666666",
     grayLight: "#e0e0e0",
@@ -34,5 +34,21 @@ export const Colors = {
     rock: '#b69e31',
     steel: '#b7b9d0',
     water: '#6493eb',
-  }
+    // French names from Tyradex API
+    acier: '#b7b9d0',
+    combat: '#c12239',
+    eau: '#6493eb',
+    électrik: '#f9cf30',
+    fée: '#e69eac',
+    feu: '#f57d31',
+    glace: '#9ad6df',
+    insecte: '#a7b723',
+    plante: '#74cb48',
+    psy: '#fb5584',
+    roche: '#b69e31',
+    sol: '#dec16b',
+    spectre: '#70559b',
+    ténèbres: '#75574c',
+    vol: '#a891ec',
+  } as Record<string, string>
 };

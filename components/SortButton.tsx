@@ -21,8 +21,8 @@ type Props = {
 };
 
 const options = [
-  { label: "Number", value: "id" },
-  { label: "Name", value: "name" },
+  { label: "Numéro", value: "id" },
+  { label: "Nom", value: "name" },
 ] as const;
 
 export function SortButton({ value, onChange }: Props) {
@@ -78,7 +78,7 @@ export function SortButton({ value, onChange }: Props) {
             color="grayWhite"
             style={styles.title}
           >
-            Sort by :
+            Trier par :
           </ThemedText>
           <Card style={styles.card}>
             {options.map((o) => (

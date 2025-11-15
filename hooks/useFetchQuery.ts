@@ -1,32 +1,170 @@
 import { Colors } from "@/constants/Colors";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 
-const endpoint = "https://pokeapi.co/api/v2";
+const endpoint = "https://tyradex.vercel.app/api/v1";
 
 type API = {
-  "/pokemon?limit=21": {
-    count: number;
-    next: string | null;
-    results: { name: string; url: string }[];
-  };
-  "/pokemon/[id]": {
-    id: number;
-    name: string;
-    url: string;
-    weight: number;
-    height: number;
-    moves: { move: { name: string } }[];
-    stats: { base_stat: number; stat: { name: string } }[];
-    cries: { latest: string };
-    types: { type: { name: keyof (typeof Colors)["type"] } }[];
-  };
-  "/pokemon-species/[id]": {
-    flavor_text_entries: {
-      flavor_text: string;
-      language: {
-        name: string;
+  "/pokemon": {
+    pokedex_id: number;
+    generation: number;
+    name: {
+      fr: string;
+      en: string;
+      jp: string;
+    };
+    sprites: {
+      regular: string;
+      shiny: string | null;
+      gmax: string | null;
+    };
+    types: Array<{
+      name: string;
+      image: string;
+    }>;
+    formes: Array<{
+      region: string;
+      name: {
+        fr: string;
+        en: string;
+        jp: string;
       };
-    }[];
+    }> | null;
+  }[];
+  "/pokemon/[name]/[region]": {
+    pokedex_id: number;
+    generation: number;
+    category: string;
+    name: {
+      fr: string;
+      en: string;
+      jp: string;
+    };
+    sprites: {
+      regular: string;
+      shiny: string | null;
+      gmax: null;
+    };
+    types: Array<{
+      name: string;
+      image: string;
+    }>;
+    stats: {
+      hp: number;
+      atk: number;
+      def: number;
+      spe_atk: number;
+      spe_def: number;
+      vit: number;
+    };
+    height: string;
+    weight: string;
+    evolution: {
+      pre: Array<{
+        pokedex_id: number;
+        name: string;
+        condition: string;
+      }> | null;
+      next: Array<{
+        pokedex_id: number;
+        name: string;
+        condition: string;
+      }> | null;
+      mega: null;
+    };
+  };
+  "/gen/all": {
+    pokedex_id: number;
+    generation: number;
+    category: string;
+    name: {
+      fr: string;
+      en: string;
+      jp: string;
+    };
+    sprites: {
+      regular: string;
+      shiny: string | null;
+      gmax: string | null;
+    };
+    types: Array<{
+      name: string;
+      image: string;
+    }>;
+    formes: Array<{
+      region: string;
+      name: {
+        fr: string;
+        en: string;
+        jp: string;
+      };
+    }> | null;
+  }[];
+  "/pokemon/[id]": {
+    pokedex_id: number;
+    generation: number;
+    category: string;
+    name: {
+      fr: string;
+      en: string;
+      jp: string;
+    };
+    sprites: {
+      regular: string;
+      shiny: string | null;
+      gmax: {
+        regular: string;
+        shiny: string;
+      } | null;
+    };
+    types: Array<{
+      name: string;
+      image: string;
+    }>;
+    talents: Array<{
+      name: string;
+      tc: boolean;
+    }>;
+    stats: {
+      hp: number;
+      atk: number;
+      def: number;
+      spe_atk: number;
+      spe_def: number;
+      vit: number;
+    };
+    resistances: Array<{
+      name: string;
+      multiplier: number;
+    }>;
+    evolution: {
+      pre: Array<{
+        pokedex_id: number;
+        name: string;
+        condition: string;
+      }> | null;
+      next: Array<{
+        pokedex_id: number;
+        name: string;
+        condition: string;
+      }> | null;
+      mega: Array<{
+        orbe: string;
+        sprites: {
+          regular: string;
+          shiny: string;
+        };
+      }> | null;
+    };
+    height: string;
+    weight: string;
+    egg_groups: string[];
+    sexe: {
+      male: number;
+      female: number;
+    };
+    catch_rate: number;
+    level_100: number;
+    formes: any;
   };
 };
 
@@ -40,8 +178,8 @@ export function useFetchQuery<T extends keyof API>(
   );
   return useQuery({
     queryKey: [path, params],
-    queryFn:  () => {
-      
+    queryFn: async () => {
+      await wait(0);
       return fetch(endpoint + localUrl, {
         headers: {
           Accept: "application/json",
@@ -51,26 +189,7 @@ export function useFetchQuery<T extends keyof API>(
   });
 }
 
-export function useInfiniteFetchQuery<T extends keyof API>(path: T) {
-  return useInfiniteQuery({
-    queryKey: [path],
-    initialPageParam: endpoint + path,
-    queryFn: ({ pageParam }) => {
-      
-      return fetch(pageParam, {
-        headers: {
-          Accept: "application/json",
-        },
-      }).then((r) => r.json() as Promise<API[T]>);
-    },
-    getNextPageParam: (lastPage) => {
-      if ("next" in lastPage) {
-        return lastPage.next;
-      }
-      return null;
-    },
-  });
-}
+
 
 function wait(duration: number) {
   return new Promise((resolve) => setTimeout(resolve, duration * 1000));

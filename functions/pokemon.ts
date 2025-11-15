@@ -1,23 +1,23 @@
-export function getPokemonId (url: string): number {
-    return parseInt(url.split('/').at(-2)!, 10)
+export function getPokemonId(pokemon: any): number {
+  return pokemon.pokedex_id;
 }
 
 export function getPokemonArtwork(id: number | string): string {
-    return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
+  return `https://raw.githubusercontent.com/Yarkis01/TyraDex/images/sprites/${id}/regular.png`;
 }
 
-export function formatWeight(weight?: number): string {
-    if (!weight){
-        return '-';
-    }
-    return (weight/10).toFixed(1) + " kg";
+export function formatWeight(weight?: string): string {
+  if (!weight) {
+    return "-";
+  }
+  return weight;
 }
 
-export function formatSize(size?: number): string {
-    if (!size){
-        return '-';
-    }
-    return (size/10).toFixed(1) + " m";
+export function formatSize(size?: string): string {
+  if (!size) {
+    return "-";
+  }
+  return size;
 }
 
 export const basePokemonStats = [
