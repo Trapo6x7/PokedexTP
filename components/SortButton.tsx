@@ -22,10 +22,10 @@ type Props = {
 
 const options = [
   { label: "Pokédex national", value: "national" },
-  { label: "Pokédex Alola", value: "alola" },
-  { label: "Pokédex Galar", value: "galar" },
-  { label: "Pokédex Hisui", value: "hisui" },
-  { label: "Pokédex Paldea", value: "paldea" },
+  { label: "Formes d'Alola", value: "alola" },
+  { label: "Formes d'Hisui", value: "hisui" },
+  { label: "Formes de Galar", value: "galar" },
+  { label: "Formes de Paldea", value: "paldea" },
 ] as const;
 
 export function SortButton({ value, onChange }: Props) {

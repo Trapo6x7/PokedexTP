@@ -47,7 +47,8 @@ export function PokemonEvolutions({
 
   // Helper function to filter evolutions by region compatibility
   const filterEvolutionsByRegion = (
-    evolutions: EvolutionEntry[]
+    evolutions: EvolutionEntry[],
+    isPre: boolean = false
   ): EvolutionEntry[] => {
     if (!Array.isArray(evolutions) || evolutions.length === 0) return [];
 
@@ -74,6 +75,7 @@ export function PokemonEvolutions({
       }
 
       if (currentIsRegional) {
+        // Pour un Pokémon régional, chercher la variante régionale de l'évolution
         const regionalMatch = evoVariants.find(
           (v) => v.region === currentRegionName
         );
@@ -82,26 +84,31 @@ export function PokemonEvolutions({
           filtered.push({
             ...evo,
             name: regionalMatch.name.fr,
-            region: regionalMatch.region, // Pass the region
+            region: regionalMatch.region,
           });
         } else {
-          const standardMatch = evoVariants.find((v) => v.region === null);
-          if (standardMatch) {
-            filtered.push({
-              ...evo,
-              name: standardMatch.name.fr,
-              region: null, // Explicitly null for standard
-            });
+          // Si pas de variante régionale, ne rien afficher pour les évolutions suivantes
+          // Mais afficher la standard pour les pré-évolutions (cas Pichu existe pas en Alola)
+          if (isPre) {
+            const standardMatch = evoVariants.find((v) => v.region === null);
+            if (standardMatch) {
+              filtered.push({
+                ...evo,
+                name: standardMatch.name.fr,
+                region: null,
+              });
+            }
           }
         }
       } else {
+        // Pour un Pokémon standard, ne montrer que la version standard
         const standardMatch = evoVariants.find((v) => v.region === null);
 
         if (standardMatch) {
           filtered.push({
             ...evo,
             name: standardMatch.name.fr,
-            region: null, // Explicitly null for standard
+            region: null,
           });
         }
       }
@@ -111,18 +118,27 @@ export function PokemonEvolutions({
   };
 
   // Determine which evolutions to display and filter by region
-  const preRaw =
+  let preRaw =
     chainPre && chainPre.length > 0 ? chainPre : displayedEvolution?.pre ?? [];
   const nextRaw =
     chainNext && chainNext.length > 0
       ? chainNext
       : displayedEvolution?.next ?? [];
 
+  // Pour les stages 3, ne garder que la dernière pré-évolution (la directe)
+  // displayedEvolution?.pre contient toute la chaîne [Pichu, Pikachu]
+  // mais on veut seulement [Pikachu] pour Raichu
+  if (chainStageNumber === 3 && Array.isArray(preRaw) && preRaw.length > 1) {
+    preRaw = [preRaw[preRaw.length - 1]]; // Garder seulement le dernier (le plus proche)
+  }
+
   const preFinal = filterEvolutionsByRegion(
-    Array.isArray(preRaw) ? preRaw : []
+    Array.isArray(preRaw) ? preRaw : [],
+    true // isPre = true pour les pré-évolutions
   );
   const nextFinal = filterEvolutionsByRegion(
-    Array.isArray(nextRaw) ? nextRaw : []
+    Array.isArray(nextRaw) ? nextRaw : [],
+    false // isPre = false pour les évolutions suivantes
   );
 
   const preCount = preFinal.length;
@@ -150,13 +166,15 @@ export function PokemonEvolutions({
               contentContainerStyle={{
                 paddingHorizontal: 4,
                 alignItems: "flex-end",
-                ...(preCount === 1 ? { flexGrow: 1, justifyContent: "center" } : {}),
+                ...(preCount === 1
+                  ? { flexGrow: 1, justifyContent: "center" }
+                  : {}),
               }}
             >
               <Row gap={8}>
                 {preFinal.map((p) => (
                   <PokemonEvo
-                    key={`pre-${p.pokedex_id}-${p.region || 'standard'}`}
+                    key={`pre-${p.pokedex_id}-${p.region || "standard"}`}
                     pokedex_id={p.pokedex_id}
                     name={p.name}
                     condition={p.condition}
@@ -169,7 +187,14 @@ export function PokemonEvolutions({
           )}
         </View>
 
-        <View style={{ width: 1, marginHorizontal: 4, alignSelf: "center", height: 52 }}>
+        <View
+          style={{
+            width: 1,
+            marginHorizontal: 4,
+            alignSelf: "center",
+            height: 52,
+          }}
+        >
           <View
             style={{
               width: 1,
@@ -188,13 +213,15 @@ export function PokemonEvolutions({
             contentContainerStyle={{
               paddingHorizontal: 4,
               alignItems: "flex-start",
-              ...(nextCount === 1 ? { flexGrow: 1, justifyContent: "center" } : {}),
+              ...(nextCount === 1
+                ? { flexGrow: 1, justifyContent: "center" }
+                : {}),
             }}
           >
             <Row gap={8}>
               {nextFinal.map((n) => (
                 <PokemonEvo
-                  key={`next-${n.pokedex_id}-${n.region || 'standard'}`}
+                  key={`next-${n.pokedex_id}-${n.region || "standard"}`}
                   pokedex_id={n.pokedex_id}
                   name={n.name}
                   condition={n.condition}
@@ -208,7 +235,6 @@ export function PokemonEvolutions({
       </Row>
     );
   }
-
 
   // Stage 1: show only next (stage 2)
   // Stage 2 without next (final): show only pre (stage 1)
@@ -229,7 +255,7 @@ export function PokemonEvolutions({
         <Row gap={8}>
           {evolutionsToShow.map((evo) => (
             <PokemonEvo
-              key={`evo-${evo.pokedex_id}-${evo.region || 'standard'}`}
+              key={`evo-${evo.pokedex_id}-${evo.region || "standard"}`}
               pokedex_id={evo.pokedex_id}
               name={evo.name}
               condition={evo.condition}

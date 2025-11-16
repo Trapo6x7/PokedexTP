@@ -82,7 +82,11 @@ export default function Index() {
     activePokedex === "national" ? p.region === null : p.region === activePokedex
   );
 
-  const filteredPokemon = pokemonForSelectedPokedex.filter((p) => {
+  // Si une recherche est active, chercher dans TOUS les pokémons (toutes régions)
+  // Sinon, filtrer par le pokédex sélectionné
+  const baseList = search.trim() ? allPokemons : pokemonForSelectedPokedex;
+
+  const filteredPokemon = baseList.filter((p) => {
     // Normalize both search term and pokemon name for comparison
     const normalizedSearch = search
       .normalize("NFD")
@@ -96,6 +100,7 @@ export default function Index() {
     
     return normalizedName.includes(normalizedSearch);
   });
+
 
   // Order by pokedex index; if equal use localized name
   const sortedPokemon = [...filteredPokemon].sort((a, b) => {
