@@ -16,13 +16,16 @@ import { Radio } from "./Radio";
 import { Shadows } from "@/constants/Shadows";
 
 type Props = {
-  value: "id" | "name";
-  onChange: (v: "id" | "name") => void;
+  value: "national" | "alola" | "galar" | "hisui" | "paldea";
+  onChange: (v: "national" | "alola" | "galar" | "hisui" | "paldea") => void;
 };
 
 const options = [
-  { label: "Numéro", value: "id" },
-  { label: "Nom", value: "name" },
+  { label: "Pokédex national", value: "national" },
+  { label: "Pokédex Alola", value: "alola" },
+  { label: "Pokédex Galar", value: "galar" },
+  { label: "Pokédex Hisui", value: "hisui" },
+  { label: "Pokédex Paldea", value: "paldea" },
 ] as const;
 
 export function SortButton({ value, onChange }: Props) {
@@ -53,11 +56,7 @@ export function SortButton({ value, onChange }: Props) {
           style={[styles.button, { backgroundColor: colors.grayWhite }]}
         >
           <Image
-            source={
-              value === "id"
-                ? require("@/assets/images/sort.png")
-                : require("@/assets/images/text_format.png")
-            }
+            source={require("@/assets/images/sort.png")}
             style={{ width: 20, height: 20 }}
           />
         </View>
@@ -82,7 +81,13 @@ export function SortButton({ value, onChange }: Props) {
           </ThemedText>
           <Card style={styles.card}>
             {options.map((o) => (
-              <Pressable key={o.value} onPress={() => onChange(o.value)}>
+              <Pressable
+                key={o.value}
+                onPress={() => {
+                  onChange(o.value);
+                  onClose();
+                }}
+              >
                 <Row gap={8}>
                   <Radio checked={o.value === value} />
                   <ThemedText>{o.label}</ThemedText>
@@ -117,7 +122,7 @@ const styles = StyleSheet.create({
     gap: 16,
     borderRadius: 12,
     position: "absolute",
-    width: 113,
+    width: 150,
     // ...Shadows.dp2,
   },
   title: {

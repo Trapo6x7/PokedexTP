@@ -12,15 +12,25 @@ type Props = {
   region?: string | null;
   nameSlug?: string | null;
   spriteUrl?: string;
+  pokedex?: "national" | "alola" | "galar" | "hisui" | "paldea" | string | null;
+  apiId?: number | string | null;
 };
 
-export function PokemonCard({ style, id, name, region, nameSlug, spriteUrl }: Props) {
+export function PokemonCard({ style, id, name, region, nameSlug, spriteUrl, pokedex, apiId }: Props) {
   const colors = useThemeColors();
   
-  // Build the correct href based on whether it's a regional form
-  const href = region && nameSlug 
-    ? { pathname: "/pokemon/[name]/[region]" as const, params: { name: nameSlug, region: region } }
-    : { pathname: "/pokemon/[id]" as const, params: { id: id } };
+  // Always link to the single layout `/pokemon/[id]` and include region in query when available
+  // Pass the `name` slug together with pokedex id + region so the details page
+  // can use `/pokemon/[name]/[region]` to fetch regional stats and types.
+  const href = {
+    pathname: "/pokemon/[id]" as const,
+    params: {
+      id: apiId ?? id,
+      region: region ?? undefined,
+      name: nameSlug ?? undefined,
+      pokedex,
+    },
+  };
   
   // Use provided sprite URL or fallback to getPokemonArtwork
   const imageUrl = spriteUrl || getPokemonArtwork(id);

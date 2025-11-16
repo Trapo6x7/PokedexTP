@@ -19,7 +19,10 @@ import {
 export default function Index() {
   const colors = useThemeColors();
   const { data: pokemonsData, isLoading } = useFetchQuery("/pokemon");
-  const [sortKey, setSortKey] = useState<"id" | "name">("id");
+  // currently used to select which Pokédex to display
+  const [activePokedex, setActivePokedex] = useState<
+    "national" | "alola" | "galar" | "hisui" | "paldea"
+  >("national");
   const [search, setSearch] = useState("");
 
   // Get all pokemon with regional forms
@@ -74,19 +77,24 @@ export default function Index() {
     return entries;
   }, [pokemonsData, regionalFormsQueries.length]);
 
-  const filteredPokemon = allPokemons.filter(
+  // Filter by selected pokedex. national = base entries (region === null)
+  const pokemonForSelectedPokedex = allPokemons.filter((p) =>
+    activePokedex === "national" ? p.region === null : p.region === activePokedex
+  );
+
+  const filteredPokemon = pokemonForSelectedPokedex.filter(
     (p) =>
       p.name.fr.toLowerCase().includes(search.toLowerCase()) ||
       p.pokedex_id.toString() === search
   );
 
+  // Order by pokedex index; if equal use localized name
   const sortedPokemon = [...filteredPokemon].sort((a, b) => {
-    if (sortKey === "id") {
-      // Mettre l'ID 0 à la fin
-      if (a.pokedex_id === 0) return 1;
-      if (b.pokedex_id === 0) return -1;
-      return a.pokedex_id - b.pokedex_id;
-    }
+    if (a.pokedex_id === 0) return 1;
+    if (b.pokedex_id === 0) return -1;
+
+    if (a.pokedex_id !== b.pokedex_id) return a.pokedex_id - b.pokedex_id;
+
     return a.name.fr.localeCompare(b.name.fr);
   });
 
@@ -104,7 +112,7 @@ export default function Index() {
       </Row>
       <Row gap={16} style={styles.form}>
         <SearchBar value={search} onChange={setSearch} />
-        <SortButton value={sortKey} onChange={setSortKey} />
+        <SortButton value={activePokedex} onChange={setActivePokedex} />
       </Row>
       <Card style={styles.body}>
         {isLoading ? (
@@ -123,6 +131,7 @@ export default function Index() {
                 region={item.region}
                 nameSlug={item.nameSlug}
                 spriteUrl={item.sprites.regular}
+                pokedex={activePokedex}
                 style={{ flex: 1 / 3 }}
               />
             )}

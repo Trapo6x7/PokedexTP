@@ -21,8 +21,13 @@ import { useState } from "react";
 
 export default function Pokemon() {
   const colors = useThemeColors();
-  const params = useLocalSearchParams() as { id: string };
+  const params = useLocalSearchParams() as { id: string; region?: string | null; name?: string | null; pokedex?: string | null };
   const { data: pokemon } = useFetchQuery("/pokemon/[id]", { id: params.id });
+  // If we have a region param and a name slug, fetch the regional form data
+  const { data: regionalPokemon } = useFetchQuery(
+    "/pokemon/[name]/[region]" as const,
+    params.region && params.name ? { name: params.name, region: params.region } : undefined
+  );
   const { data: allPokemons } = useFetchQuery("/pokemon");
   const id = parseInt(params.id, 10);
   const [currentForm, setCurrentForm] = useState<"regular" | "shiny" | "mega" | "gmax">("regular");
@@ -43,10 +48,25 @@ export default function Pokemon() {
   // Check if Pokemon has only regular sprite (no other forms available)
   const hasOnlyRegularSprite = availableForms.length === 1;
   
-  // Get current sprite URL based on form
+  // Get current sprite URL based on form — handle regional forms via `params.region`
   const getCurrentSprite = (): string => {
     if (!pokemon) return "";
-    
+
+    const activeRegion = (params as any).region ?? null;
+    if (activeRegion) {
+      // look for a regional entry matching this id
+      const regionalEntry = entries.find(
+        (e) => e.pokedex_id === id && e.region === activeRegion
+      );
+      if (regionalEntry) {
+        if (currentForm === "regular") return regionalEntry.sprites.regular;
+        if (currentForm === "shiny" && regionalEntry.sprites.shiny)
+          return regionalEntry.sprites.shiny;
+        return regionalEntry.sprites.regular;
+      }
+    }
+
+    // fallback to base pokemon sprites
     if (currentForm === "regular") {
       return pokemon.sprites.regular;
     } else if (currentForm === "shiny" && pokemon.sprites.shiny) {
@@ -56,7 +76,7 @@ export default function Pokemon() {
     } else if (currentForm === "gmax" && pokemon.sprites.gmax) {
       return pokemon.sprites.gmax.regular;
     }
-    
+
     return pokemon.sprites.regular;
   };
 
@@ -121,34 +141,81 @@ export default function Pokemon() {
     });
   };
   
-  const mainType = pokemon?.types?.[0]?.name?.toLowerCase();
+  // Prefer region-specific types if available (regional forms can change types)
+  const displayedTypes = regionalPokemon?.types ?? pokemon?.types ?? [];
+  const mainType = displayedTypes?.[0]?.name?.toLowerCase();
   const colorType = (mainType && Colors.type[mainType as keyof typeof Colors.type]) || colors.tint;
-  const types = pokemon?.types ?? [];
-  const bio = pokemon?.category;
-  const stats = pokemon?.stats
+  const types = displayedTypes;
+  const bio = regionalPokemon?.category ?? pokemon?.category;
+  const displayedEvolution = regionalPokemon?.evolution ?? pokemon?.evolution;
+  // If the region endpoint returned stats for the regional form use them, else fallback
+  const displayedStats = regionalPokemon?.stats ?? pokemon?.stats;
+  const stats = displayedStats
     ? [
-        { stat: { name: "hp" }, base_stat: pokemon.stats.hp },
-        { stat: { name: "atk" }, base_stat: pokemon.stats.atk },
-        { stat: { name: "def" }, base_stat: pokemon.stats.def },
-        { stat: { name: "spe-atk" }, base_stat: pokemon.stats.spe_atk },
-        { stat: { name: "spe-def" }, base_stat: pokemon.stats.spe_def },
-        { stat: { name: "vit" }, base_stat: pokemon.stats.vit },
+        { stat: { name: "hp" }, base_stat: displayedStats.hp },
+        { stat: { name: "atk" }, base_stat: displayedStats.atk },
+        { stat: { name: "def" }, base_stat: displayedStats.def },
+        { stat: { name: "spe-atk" }, base_stat: displayedStats.spe_atk },
+        { stat: { name: "spe-def" }, base_stat: displayedStats.spe_def },
+        { stat: { name: "vit" }, base_stat: displayedStats.vit },
       ]
     : basePokemonStats;
 
-  const totalPokemon = allPokemons?.length ?? 1025;
+  // Build entries including regional forms like the main list (national = region === null)
+  const pokemonWithForms = (allPokemons ?? []).filter((p) => p.formes && p.formes.length > 0);
+  const regionalFormsQueries = pokemonWithForms
+    .map((pokemon) => pokemon.formes!.map((forme) => ({ pokemon, forme })))
+    .flat();
+
+  const entries = (allPokemons ?? []).map((pokemon) => ({
+    pokedex_id: pokemon.pokedex_id,
+    name: pokemon.name,
+    sprites: pokemon.sprites,
+    types: pokemon.types,
+    region: null as string | null,
+    nameSlug: null as string | null,
+  }));
+
+  regionalFormsQueries.forEach(({ pokemon, forme }) => {
+    entries.push({
+      pokedex_id: pokemon.pokedex_id,
+      name: forme.name,
+      sprites: {
+        regular: `https://raw.githubusercontent.com/Yarkis01/TyraDex/images/sprites/${pokemon.pokedex_id}/regular_${forme.region}.png`,
+        shiny: `https://raw.githubusercontent.com/Yarkis01/TyraDex/images/sprites/${pokemon.pokedex_id}/shiny_${forme.region}.png`,
+        gmax: null,
+      },
+      types: pokemon.types,
+      region: forme.region,
+      nameSlug: pokemon.name.fr
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, ""),
+    });
+  });
+
+  const activeRegion = params.region ?? null;
+
+  // Create entries for selected region; national if region === null
+  const entriesForSelectedRegion = entries.filter((e) =>
+    activeRegion === null ? e.region === null : e.region === activeRegion
+  );
+
+  // Find index by matching both pokedex_id and region
+  const currentIndex = entriesForSelectedRegion.findIndex(
+    (e) => e.pokedex_id === id && (activeRegion === null ? e.region === null : e.region === activeRegion)
+  );
+
+  const prevEntry = entriesForSelectedRegion[currentIndex - 1];
+  const nextEntry = entriesForSelectedRegion[currentIndex + 1];
 
   const onPrevious = () =>
-    router.setParams({
-      id: String(Math.max(id - 1, 1)),
-    });
+    router.setParams({ id: String(prevEntry?.pokedex_id ?? Math.max(id - 1, 1)), region: prevEntry?.region ?? undefined, name: prevEntry?.nameSlug ?? undefined });
   const onNext = () =>
-    router.setParams({
-      id: String(Math.min(id + 1, totalPokemon)),
-    });
+    router.setParams({ id: String(nextEntry?.pokedex_id ?? Math.min(id + 1, entriesForSelectedRegion.length)), region: nextEntry?.region ?? undefined, name: nextEntry?.nameSlug ?? undefined });
 
-    const isFirst = id === 1;
-    const isLast = id === totalPokemon;
+  const isFirst = currentIndex <= 0;
+  const isLast = currentIndex === -1 || currentIndex >= entriesForSelectedRegion.length - 1;
 
   return (
     <RootView bakcgroundColor={colorType}>
@@ -167,7 +234,7 @@ export default function Pokemon() {
             </Row>
           </Pressable>
           <ThemedText color="grayWhite" variant="headline">
-            {pokemon?.name.fr || ""}
+            {entriesForSelectedRegion[currentIndex]?.name?.fr ?? pokemon?.name.fr ?? ""}
           </ThemedText>
           <ThemedText color="grayWhite" variant="subtitle2">
             #{params.id.padStart(3, "0")}
@@ -231,7 +298,7 @@ export default function Pokemon() {
                   borderRightWidth: 1,
                   borderColor: colors.grayLight,
                 }}
-                title={formatWeight(pokemon?.weight)}
+                title={formatWeight(regionalPokemon?.weight ?? pokemon?.weight)}
                 description="Poids"
                 image={require("@/assets/images/weight.png")}
               />
@@ -241,7 +308,7 @@ export default function Pokemon() {
                 //   borderRightWidth: 1,
                 //   borderColor: colors.grayLight,
                 // }}
-                title={formatSize(pokemon?.height)}
+                title={formatSize(regionalPokemon?.height ?? pokemon?.height)}
                 description="Taille"
                 image={require("@/assets/images/straighten.png")}
               />
@@ -258,7 +325,9 @@ export default function Pokemon() {
             <Row style={{ alignItems: "center", gap: 8 }}>
               {/* Build a list of available items and render separators between them */}
               {(() => {
-                const parts = [pokemon?.name?.en, pokemon?.name?.jp, bio].filter(Boolean);
+                // Prefer region-specific names when available
+                const displayedName = regionalPokemon?.name ?? pokemon?.name;
+                const parts = [displayedName?.en, displayedName?.jp, bio].filter(Boolean);
                 return (
                   <Row gap={6} style={{ alignItems: "center" }}>
                     {parts.map((part, i) => (
@@ -298,32 +367,40 @@ export default function Pokemon() {
             <Row style={{ alignSelf: "stretch", gap: 8 }}>
               {/* Pré-évolution directe à gauche (dernière de la liste) */}
               <View style={{ flex: 1, gap: 8 }}>
-                {pokemon?.evolution?.pre && pokemon.evolution.pre.length > 0 && (
+                {displayedEvolution?.pre && displayedEvolution.pre.length > 0 && (
                   <Pressable
-                    onPress={() => router.setParams({ id: String(pokemon.evolution.pre![pokemon.evolution.pre!.length - 1].pokedex_id) })}
+                    onPress={() => {
+                      const targetId = displayedEvolution.pre![displayedEvolution.pre!.length - 1].pokedex_id;
+                      const targetName = entries.find((e) => e.pokedex_id === targetId && e.region === activeRegion)?.nameSlug ?? entries.find((e) => e.pokedex_id === targetId)?.nameSlug;
+                      router.setParams({ id: String(targetId), region: activeRegion ?? undefined, name: targetName ?? undefined });
+                    }}
                     style={{ backgroundColor: colors.grayWhite, padding: 12, borderRadius: 8, alignItems: "center" }}
                   >
                     <ThemedText variant="subtitle3">
-                      ← {pokemon.evolution.pre[pokemon.evolution.pre.length - 1].name}
+                      ← {displayedEvolution.pre[displayedEvolution.pre.length - 1].name}
                     </ThemedText>
                     <ThemedText variant="caption" color="grayMedium">
-                      {pokemon.evolution.pre[pokemon.evolution.pre.length - 1].condition}
+                      {displayedEvolution.pre[displayedEvolution.pre.length - 1].condition}
                     </ThemedText>
                   </Pressable>
                 )}
               </View>
               {/* Évolution suivante directe à droite (première de la liste) */}
               <View style={{ flex: 1, gap: 8 }}>
-                {pokemon?.evolution?.next && pokemon.evolution.next.length > 0 && (
+                {displayedEvolution?.next && displayedEvolution.next.length > 0 && (
                   <Pressable
-                    onPress={() => router.setParams({ id: String(pokemon.evolution.next![0].pokedex_id) })}
+                    onPress={() => {
+                      const targetId = displayedEvolution.next![0].pokedex_id;
+                      const targetName = entries.find((e) => e.pokedex_id === targetId && e.region === activeRegion)?.nameSlug ?? entries.find((e) => e.pokedex_id === targetId)?.nameSlug;
+                      router.setParams({ id: String(targetId), region: activeRegion ?? undefined, name: targetName ?? undefined });
+                    }}
                     style={{ backgroundColor: colors.grayWhite, padding: 12, borderRadius: 8, alignItems: "center" }}
                   >
                     <ThemedText variant="subtitle3">
-                      {pokemon.evolution.next[0].name} →
+                      {displayedEvolution.next[0].name} →
                     </ThemedText>
                     <ThemedText variant="caption" color="grayMedium">
-                      {pokemon.evolution.next[0].condition}
+                      {displayedEvolution.next[0].condition}
                     </ThemedText>
                   </Pressable>
                 )}

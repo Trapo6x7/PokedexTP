@@ -178,6 +178,9 @@ export function useFetchQuery<T extends keyof API>(
   );
   return useQuery({
     queryKey: [path, params],
+    // Only run parameterized endpoints (containing [param]) when params are provided
+    enabled:
+      Object.keys(params ?? {}).length > 0 || !/\[.*\]/.test(path as string),
     queryFn: async () => {
       await wait(0);
       return fetch(endpoint + localUrl, {
