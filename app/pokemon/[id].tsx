@@ -371,10 +371,6 @@ export default function Pokemon() {
       ) || entries.find((e) => e.pokedex_id === id);
       
       if (!currentPokemon) return rawNext;
-
-      console.log('=== DEBUG chainNext ===');
-      console.log('Current Pokemon:', currentPokemon.name.fr, 'Region:', currentPokemon.region);
-      console.log('Raw evolutions from PokeAPI:', rawNext.map(e => `${e.name} (${e.pokedex_id})`));
       
       // Pour chaque évolution, vérifier si elle existe dans la bonne région
       const result = rawNext

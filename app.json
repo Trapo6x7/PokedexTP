@@ -7,7 +7,7 @@
     "icon": "./assets/images/trapokedexicon.png",
     "scheme": "trapokedex",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },

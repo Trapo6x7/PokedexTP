@@ -13,8 +13,8 @@ type EvoProps = {
 
 export const PokemonEvo: React.FC<EvoProps> = ({ pokedex_id, name, condition, region, onPress }) => {
   const imageUrl = getPokemonArtwork(pokedex_id ?? 1, region);
-  console.log('PokemonEvo URL:', imageUrl, 'Region:', region); // Debug
-  
+
+
   return (
     <Pressable onPress={onPress} style={styles.evoTile}>
       <View style={styles.evoImageContainer}>

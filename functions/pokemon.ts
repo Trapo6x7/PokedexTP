@@ -62,3 +62,100 @@ export const basePokemonStats = [
       }
     }
   ];
+
+  export const specialEvolutions = [
+  {
+    from: "pikachu",
+    fromForm: "alola",
+    to: "raichu",
+    toForm: "alola",
+    conditions: {
+      item: "thunder-stone"
+    }
+  },
+  {
+    from: "cubone",
+    fromForm: "alola",
+    to: "marowak",
+    toForm: "alola",
+    conditions: {
+      level: 28,
+      time: "night"
+    }
+  },
+  {
+    from: "wooper",
+    fromForm: "paldea",
+    to: "clodsire",
+    conditions: {
+      level: 20
+    }
+  },
+  {
+    from: "slowpoke",
+    fromForm: "galar",
+    to: "slowbro",
+    toForm: "galar",
+    conditions: {
+      item: "galarica-cuff"
+    }
+  },
+  {
+    from: "slowpoke",
+    fromForm: "galar",
+    to: "slowking",
+    toForm: "galar",
+    conditions: {
+      item: "galarica-wreath"
+    }
+  },
+  {
+    from: "growlithe",
+    fromForm: "hisui",
+    to: "arcanine",
+    toForm: "hisui",
+    conditions: {
+      item: "fire-stone"
+    }
+  },
+  {
+    from: "vulpix",
+    fromForm: "alola",
+    to: "ninetales",
+    toForm: "alola",
+    conditions: {
+      item: "ice-stone"
+    }
+  },
+  {
+    from: "basculin",
+    fromForm: "white-striped",
+    to: "basculegion",
+    conditions: {
+      selfDamage: 294
+    }
+  },
+  {
+    from: "qwilfish",
+    fromForm: "hisui",
+    to: "overqwil",
+    conditions: {
+      moveCount: {
+        move: "barb-barrage",
+        times: 20
+      }
+    }
+  },
+  {
+    from: "stantler",
+    to: "wyrdeer",
+    conditions: {
+      moveCount: {
+        move: "psyshield-bash",
+        times: 20
+      }
+    }
+  }
+] as const;
+
+export type SpecialEvolution = typeof specialEvolutions[number];

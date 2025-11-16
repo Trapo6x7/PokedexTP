@@ -5,6 +5,7 @@ import { PokemonEvo } from "./PokemonEvo";
 import { ThemedText } from "../ThemedText";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import type { PokemonEntry } from "@/hooks/useFetchQuery";
+import { specialEvolutions } from "@/functions/pokemon";
 
 interface EvolutionEntry {
   pokedex_id: number;
@@ -45,7 +46,10 @@ export function PokemonEvolutions({
 }: PokemonEvolutionsProps) {
   const colors = useThemeColors();
 
-  // Helper function to filter evolutions by region compatibility
+  // Helper: normalize name for comparison
+  const normalizeName = (name: string) =>
+    name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+
   const filterEvolutionsByRegion = (
     evolutions: EvolutionEntry[],
     isPre: boolean = false
@@ -61,61 +65,112 @@ export function PokemonEvolutions({
 
     const currentIsRegional = currentPokemon.region !== null;
     const currentRegionName = currentPokemon.region;
+    const currentNameSlug = currentPokemon.nameSlug || normalizeName(currentPokemon.name.fr);
 
     const filtered: EvolutionEntry[] = [];
 
     evolutions.forEach((evo) => {
-      const evoVariants = entries.filter(
-        (e) => e.pokedex_id === evo.pokedex_id
-      );
+      const evoVariants = entries.filter((e) => e.pokedex_id === evo.pokedex_id);
 
       if (evoVariants.length === 0) {
         filtered.push(evo);
         return;
       }
 
-      if (currentIsRegional) {
-        // Pour un Pokémon régional, chercher la variante régionale de l'évolution
-        const regionalMatch = evoVariants.find(
-          (v) => v.region === currentRegionName
+      // Check for special evolution rules (only for next evolutions)
+      if (!isPre) {
+        const evoNameSlug = normalizeName(evo.name);
+        
+        // Find matching special evolution
+        const specialEvo = specialEvolutions.find(
+          (se) => {
+            const matchesNames = normalizeName(se.from) === currentNameSlug && 
+                                normalizeName(se.to) === evoNameSlug;
+            const matchesForm = 'fromForm' in se 
+              ? se.fromForm === currentRegionName 
+              : true;
+            
+            return matchesNames && matchesForm;
+          }
         );
 
-        if (regionalMatch) {
-          filtered.push({
-            ...evo,
-            name: regionalMatch.name.fr,
-            region: regionalMatch.region,
-          });
+        if (specialEvo) {
+          // This is a special evolution - use the specific toForm
+          const targetForm = ('toForm' in specialEvo && specialEvo.toForm) ? specialEvo.toForm : null;
+          const targetVariant = evoVariants.find((v) => v.region === targetForm);
+          
+          if (targetVariant) {
+            filtered.push({
+              ...evo,
+              name: targetVariant.name.fr,
+              region: targetVariant.region,
+            });
+          }
+          return; // Don't process further
+        }
+      }
+
+      // Default regional logic
+      if (currentIsRegional) {
+        // Pour un Pokémon régional, chercher uniquement la variante régionale
+        const regionalMatch = evoVariants.find((v) => v.region === currentRegionName);
+        const standardMatch = evoVariants.find((v) => v.region === null);
+
+        if (isPre) {
+          if (regionalMatch) {
+            filtered.push({
+              ...evo,
+              name: regionalMatch.name.fr,
+              region: regionalMatch.region,
+            });
+          } else if (standardMatch) {
+            filtered.push({
+              ...evo,
+              name: standardMatch.name.fr,
+              region: null,
+            });
+          }
         } else {
-          // Si pas de variante régionale, ne rien afficher pour les évolutions suivantes
-          // Mais afficher la standard pour les pré-évolutions (cas Pichu existe pas en Alola)
-          if (isPre) {
-            const standardMatch = evoVariants.find((v) => v.region === null);
-            if (standardMatch) {
-              filtered.push({
-                ...evo,
-                name: standardMatch.name.fr,
-                region: null,
-              });
-            }
+          if (regionalMatch) {
+            filtered.push({
+              ...evo,
+              name: regionalMatch.name.fr,
+              region: regionalMatch.region,
+            });
+          }
+
+          // Cas spécial : afficher aussi la standard si elle existe (ex: Axoloto Paldea)
+          if (regionalMatch && standardMatch) {
+            filtered.push({
+              ...evo,
+              name: standardMatch.name.fr,
+              region: null,
+            });
           }
         }
       } else {
-        // Pour un Pokémon standard, ne montrer que la version standard
-        const standardMatch = evoVariants.find((v) => v.region === null);
-
-        if (standardMatch) {
-          filtered.push({
-            ...evo,
-            name: standardMatch.name.fr,
-            region: null,
-          });
-        }
+        // Pour un Pokémon STANDARD, afficher TOUTES les variantes disponibles
+        evoVariants.forEach((variant) => {
+          // Éviter les doublons
+          const alreadyAdded = filtered.some(
+            f => f.pokedex_id === variant.pokedex_id && f.region === variant.region
+          );
+          
+          if (!alreadyAdded) {
+            filtered.push({
+              pokedex_id: variant.pokedex_id,
+              name: variant.name.fr,
+              condition: evo.condition,
+              region: variant.region,
+            });
+          }
+        });
       }
     });
 
     return filtered;
   };
+
 
   // Determine which evolutions to display and filter by region
   let preRaw =
