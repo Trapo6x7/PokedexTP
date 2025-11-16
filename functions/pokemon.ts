@@ -25,133 +25,157 @@ export function formatSize(size?: string): string {
 }
 
 export const basePokemonStats = [
-    {
-      "base_stat": 1,
-      "stat": {
-        "name": "hp",
-      }
+  {
+    base_stat: 1,
+    stat: {
+      name: "hp",
     },
-    {
-      "base_stat": 1,
-      "stat": {
-        "name": "attack",
-      }
+  },
+  {
+    base_stat: 1,
+    stat: {
+      name: "attack",
     },
-    {
-      "base_stat": 1,
-      "stat": {
-        "name": "defense",
-      }
+  },
+  {
+    base_stat: 1,
+    stat: {
+      name: "defense",
     },
-    {
-      "base_stat": 1,
-      "stat": {
-        "name": "special-attack",
-      }
+  },
+  {
+    base_stat: 1,
+    stat: {
+      name: "special-attack",
     },
-    {
-      "base_stat": 1,
-      "stat": {
-        "name": "special-defense",
-      }
+  },
+  {
+    base_stat: 1,
+    stat: {
+      name: "special-defense",
     },
-    {
-      "base_stat": 1,
-      "stat": {
-        "name": "speed",
-      }
-    }
-  ];
+  },
+  {
+    base_stat: 1,
+    stat: {
+      name: "speed",
+    },
+  },
+];
 
-  export const specialEvolutions = [
+export const specialEvolutions = [
   {
     from: "pikachu",
-    fromForm: "alola",
+    fromForm: "alola" as const,
     to: "raichu",
-    toForm: "alola",
+    toForm: "alola" as const,
     conditions: {
-      item: "thunder-stone"
-    }
+      item: "thunder-stone",
+    },
   },
   {
     from: "osselait",
-    fromForm: "alola",
+    fromForm: "alola" as const,
     to: "ossatueur",
-    toForm: "alola",
+    toForm: "alola" as const,
     conditions: {
       level: 28,
-      time: "night"
-    }
+      time: "night",
+    },
+  },
+  {
+    from: "miaouss",
+    to: "persian",
+    conditions: {
+      friendship: true,
+    },
+  },
+  {
+    from: "miaouss",
+    fromForm: "alola" as const,
+    to: "persian",
+    toForm: "alola" as const,
+    conditions: {
+      friendship: true,
+    },
+  },
+  {
+    from: "miaouss",
+    fromForm: "galar" as const,
+    to: "berserkatt",
+    conditions: {
+      level: 28,
+    },
   },
   {
     from: "axoloto",
-    fromForm: "paldea",
+    fromForm: "paldea" as const,
     to: "terraiste",
     conditions: {
-      level: 20
-    }
+      level: 20,
+    },
   },
   {
     from: "axoloto",
     to: "maraiste",
     conditions: {
-      level: 20
-    }
+      level: 20,
+    },
   },
   {
     from: "ramoloss",
-    fromForm: "galar",
+    fromForm: "galar" as const,
     to: "flagadoss",
-    toForm: "galar",
+    toForm: "galar" as const,
     conditions: {
-      item: "galarica-cuff"
-    }
+      item: "galarica-cuff",
+    },
   },
   {
     from: "ramoloss",
-    fromForm: "galar",
+    fromForm: "galar" as const,
     to: "roigada",
-    toForm: "galar",
+    toForm: "galar" as const,
     conditions: {
-      item: "galarica-wreath"
-    }
+      item: "galarica-wreath",
+    },
   },
   {
     from: "caninos",
-    fromForm: "hisui",
+    fromForm: "hisui" as const,
     to: "arcanin",
-    toForm: "hisui",
+    toForm: "hisui" as const,
     conditions: {
-      item: "fire-stone"
-    }
+      item: "fire-stone",
+    },
   },
   {
     from: "goupix",
-    fromForm: "alola",
+    fromForm: "alola" as const,
     to: "feunard",
-    toForm: "alola",
+    toForm: "alola" as const,
     conditions: {
-      item: "ice-stone"
-    }
+      item: "ice-stone",
+    },
   },
   {
     from: "bargantua",
-    fromForm: "white-striped",
+    fromForm: "white-striped" as const,
     to: "paragruel",
     conditions: {
-      selfDamage: 294
-    }
+      selfDamage: 294,
+    },
   },
   {
     from: "qwilfish",
-    fromForm: "hisui",
+    fromForm: "hisui" as const,
     to: "qwilpik",
     conditions: {
       moveCount: {
         move: "barb-barrage",
-        times: 20
-      }
-    }
+        times: 20,
+      },
+    },
   },
   {
     from: "cerfrousse",
@@ -159,10 +183,10 @@ export const basePokemonStats = [
     conditions: {
       moveCount: {
         move: "psyshield-bash",
-        times: 20
-      }
-    }
-  }
+        times: 20,
+      },
+    },
+  },
 ] as const;
 
-export type SpecialEvolution = typeof specialEvolutions[number];
+export type SpecialEvolution = (typeof specialEvolutions)[number];

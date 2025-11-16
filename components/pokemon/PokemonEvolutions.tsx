@@ -48,7 +48,11 @@ export function PokemonEvolutions({
 
   // Helper: normalize name for comparison
   const normalizeName = (name: string) =>
-    name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+    name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]/g, "");
 
   const filterEvolutionsByRegion = (
     evolutions: EvolutionEntry[],
@@ -66,12 +70,15 @@ export function PokemonEvolutions({
     const currentIsRegional = currentPokemon.region !== null;
     const currentRegionName = currentPokemon.region;
     // Use French name slug for comparison with specialEvolutions
-    const currentNameSlug = currentPokemon.nameSlug || normalizeName(currentPokemon.name.fr);
+    const currentNameSlug =
+      currentPokemon.nameSlug || normalizeName(currentPokemon.name.fr);
 
     const filtered: EvolutionEntry[] = [];
 
     evolutions.forEach((evo) => {
-      const evoVariants = entries.filter((e) => e.pokedex_id === evo.pokedex_id);
+      const evoVariants = entries.filter(
+        (e) => e.pokedex_id === evo.pokedex_id
+      );
 
       if (evoVariants.length === 0) {
         filtered.push(evo);
@@ -80,47 +87,132 @@ export function PokemonEvolutions({
 
       // Get normalized names for special evolution matching
       const evoEntry = entries.find((e) => e.pokedex_id === evo.pokedex_id);
-      const evoNameSlug = evoEntry?.nameSlug || normalizeName(evoEntry?.name.fr || evo.name);
-      
-      console.log('Evolution check - evo.name:', evo.name, 'evoEntry?.name.fr:', evoEntry?.name.fr, 'evoNameSlug:', evoNameSlug);
+      const evoNameSlug =
+        evoEntry?.nameSlug || normalizeName(evoEntry?.name.fr || evo.name);
 
-      // Check for special evolution rules (for both pre and next evolutions)
-      console.log('Checking special evo for:', currentNameSlug, isPre ? '<-' : '->', evoNameSlug, 'region:', currentRegionName);
-      
-      // For pre-evolutions, we need to reverse the direction (evo -> current instead of current -> evo)
-      const specialEvo = specialEvolutions.find(
-        (se) => {
-          const matchesNames = isPre
-            ? normalizeName(se.to) === currentNameSlug && normalizeName(se.from) === evoNameSlug
-            : normalizeName(se.from) === currentNameSlug && normalizeName(se.to) === evoNameSlug;
-          
-          // For regional Pokemon, check if fromForm/toForm matches
-          // For standard Pokemon, check if there's NO fromForm (for next evolutions) or NO toForm (for pre evolutions)
-          const matchesForm = isPre
-            ? ('toForm' in se && se.toForm ? se.toForm === currentRegionName : currentRegionName === null)
-            : ('fromForm' in se ? se.fromForm === currentRegionName : currentRegionName === null);
-          
-          console.log('Testing rule:', se.from, '->', se.to, 
-                     'fromForm:', 'fromForm' in se ? se.fromForm : 'none',
-                     'toForm:', 'toForm' in se ? se.toForm : 'none',
-                     'matchesNames:', matchesNames, 'matchesForm:', matchesForm);
-          
-          return matchesNames && matchesForm;
-        }
+      console.log(
+        "Evolution check - evo.name:",
+        evo.name,
+        "evoEntry?.name.fr:",
+        evoEntry?.name.fr,
+        "evoNameSlug:",
+        evoNameSlug
       );
 
+      // Check for special evolution rules (for both pre and next evolutions)
+      console.log(
+        "Checking special evo for:",
+        currentNameSlug,
+        isPre ? "<-" : "->",
+        evoNameSlug,
+        "region:",
+        currentRegionName
+      );
+
+      // For pre-evolutions, we need to reverse the direction (evo -> current instead of current -> evo)
+      const specialEvo = specialEvolutions.find((se) => {
+        const matchesNames = isPre
+          ? normalizeName(se.to) === currentNameSlug &&
+            normalizeName(se.from) === evoNameSlug
+          : normalizeName(se.from) === currentNameSlug &&
+            normalizeName(se.to) === evoNameSlug;
+
+        // For regional Pokemon, check if fromForm/toForm matches
+        // For standard Pokemon, check if there's NO fromForm (for next evolutions) or NO toForm (for pre evolutions)
+        const matchesForm = isPre
+          ? "toForm" in se && se.toForm
+            ? se.toForm === currentRegionName
+            : currentRegionName === null
+          : "fromForm" in se
+          ? se.fromForm === currentRegionName
+          : currentRegionName === null;
+
+        console.log(
+          "Testing rule:",
+          se.from,
+          "->",
+          se.to,
+          "fromForm:",
+          "fromForm" in se ? se.fromForm : "none",
+          "toForm:",
+          "toForm" in se ? se.toForm : "none",
+          "matchesNames:",
+          matchesNames,
+          "matchesForm:",
+          matchesForm
+        );
+
+        return matchesNames && matchesForm;
+      });
+
+      // Check if there's ANY special rule for this evolution (even if it doesn't match current form)
+      const hasAnySpecialRule = specialEvolutions.some((se) => {
+        const matchesNames = isPre
+          ? normalizeName(se.to) === currentNameSlug &&
+            normalizeName(se.from) === evoNameSlug
+          : normalizeName(se.from) === currentNameSlug &&
+            normalizeName(se.to) === evoNameSlug;
+        return matchesNames;
+      });
+
+      if (hasAnySpecialRule) {
+        // If there's a special rule that applies, only add if it matches
+        if (specialEvo) {
+          console.log("Found special evolution rule:", specialEvo);
+          // For pre-evolutions, use fromForm; for next evolutions, use toForm
+          const targetForm = isPre
+            ? "fromForm" in specialEvo && specialEvo.fromForm
+              ? specialEvo.fromForm
+              : null
+            : "toForm" in specialEvo && specialEvo.toForm
+            ? specialEvo.toForm
+            : null;
+
+          console.log("Target form:", targetForm, "isPre:", isPre);
+          const targetVariant = evoVariants.find(
+            (v) => v.region === targetForm
+          );
+
+          console.log(
+            "Target variant found:",
+            targetVariant?.name.fr,
+            "region:",
+            targetVariant?.region
+          );
+
+          if (targetVariant) {
+            filtered.push({
+              ...evo,
+              name: targetVariant.name.fr,
+              region: targetVariant.region,
+            });
+          }
+        }
+        // If special rule exists but doesn't match, don't add anything
+        return; // Don't process further
+      }
+
       if (specialEvo) {
-        console.log('Found special evolution rule:', specialEvo);
+        console.log("Found special evolution rule:", specialEvo);
         // For pre-evolutions, use fromForm; for next evolutions, use toForm
         const targetForm = isPre
-          ? ('fromForm' in specialEvo && specialEvo.fromForm ? specialEvo.fromForm : null)
-          : ('toForm' in specialEvo && specialEvo.toForm ? specialEvo.toForm : null);
-        
-        console.log('Target form:', targetForm, 'isPre:', isPre);
+          ? "fromForm" in specialEvo && specialEvo.fromForm
+            ? specialEvo.fromForm
+            : null
+          : "toForm" in specialEvo && specialEvo.toForm
+          ? specialEvo.toForm
+          : null;
+
+        console.log("Target form:", targetForm, "isPre:", isPre);
         const targetVariant = evoVariants.find((v) => v.region === targetForm);
-        
-        console.log('Target variant found:', targetVariant?.name.fr, 'region:', targetVariant?.region);
-        
+
+        console.log(
+          "Target variant found:",
+          targetVariant?.name.fr,
+          "region:",
+          targetVariant?.region
+        );
+
         if (targetVariant) {
           filtered.push({
             ...evo,
@@ -134,7 +226,9 @@ export function PokemonEvolutions({
       // Default regional logic
       if (currentIsRegional) {
         // Pour un Pokémon régional, chercher uniquement la variante régionale
-        const regionalMatch = evoVariants.find((v) => v.region === currentRegionName);
+        const regionalMatch = evoVariants.find(
+          (v) => v.region === currentRegionName
+        );
         const standardMatch = evoVariants.find((v) => v.region === null);
 
         if (isPre) {
@@ -171,24 +265,35 @@ export function PokemonEvolutions({
         }
       } else {
         // Pour un Pokémon STANDARD, vérifier s'il a des règles spéciales
-        console.log('Standard Pokemon case - checking for special rules');
-        console.log('currentNameSlug:', currentNameSlug, 'evoNameSlug:', evoNameSlug);
-        
-        const hasSpecialRule = specialEvolutions.some(
-          (se) => {
-            const matchesNames = normalizeName(se.from) === currentNameSlug &&
-                                normalizeName(se.to) === evoNameSlug;
-            const hasNoFromForm = !('fromForm' in se);
-            
-            console.log('Testing standard rule:', se.from, '->', se.to, 
-                       'hasNoFromForm:', hasNoFromForm,
-                       'matchesNames:', matchesNames);
-            
-            return matchesNames && hasNoFromForm;
-          }
+        console.log("Standard Pokemon case - checking for special rules");
+        console.log(
+          "currentNameSlug:",
+          currentNameSlug,
+          "evoNameSlug:",
+          evoNameSlug
         );
 
-        console.log('Has special rule:', hasSpecialRule);
+        const hasSpecialRule = specialEvolutions.some((se) => {
+          const matchesNames =
+            normalizeName(se.from) === currentNameSlug &&
+            normalizeName(se.to) === evoNameSlug;
+          const hasNoFromForm = !("fromForm" in se);
+
+          console.log(
+            "Testing standard rule:",
+            se.from,
+            "->",
+            se.to,
+            "hasNoFromForm:",
+            hasNoFromForm,
+            "matchesNames:",
+            matchesNames
+          );
+
+          return matchesNames && hasNoFromForm;
+        });
+
+        console.log("Has special rule:", hasSpecialRule);
 
         if (hasSpecialRule) {
           // Utiliser uniquement la variante standard définie dans les règles
@@ -204,9 +309,11 @@ export function PokemonEvolutions({
           // Pas de règle spéciale : afficher TOUTES les variantes
           evoVariants.forEach((variant) => {
             const alreadyAdded = filtered.some(
-              f => f.pokedex_id === variant.pokedex_id && f.region === variant.region
+              (f) =>
+                f.pokedex_id === variant.pokedex_id &&
+                f.region === variant.region
             );
-            
+
             if (!alreadyAdded) {
               filtered.push({
                 pokedex_id: variant.pokedex_id,
@@ -222,7 +329,6 @@ export function PokemonEvolutions({
 
     return filtered;
   };
-
 
   // Determine which evolutions to display and filter by region
   let preRaw =
