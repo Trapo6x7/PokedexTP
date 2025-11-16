@@ -7,14 +7,18 @@ type EvoProps = {
   pokedex_id?: number | null;
   name?: string;
   condition?: string | null;
+  region?: string | null; // Add region prop
   onPress?: () => void;
 };
 
-export const PokemonEvo: React.FC<EvoProps> = ({ pokedex_id, name, condition, onPress }) => {
+export const PokemonEvo: React.FC<EvoProps> = ({ pokedex_id, name, condition, region, onPress }) => {
+  const imageUrl = getPokemonArtwork(pokedex_id ?? 1, region);
+  console.log('PokemonEvo URL:', imageUrl, 'Region:', region); // Debug
+  
   return (
     <Pressable onPress={onPress} style={styles.evoTile}>
       <View style={styles.evoImageContainer}>
-        <Image source={{ uri: getPokemonArtwork(pokedex_id ?? 1) }} style={styles.evoImage} />
+        <Image source={{ uri: getPokemonArtwork(pokedex_id ?? 1, region) }} style={styles.evoImage} />
       </View>
       <ThemedText variant="subtitle3" style={styles.evoName}>{name}</ThemedText>
       {/* <ThemedText variant="caption" color="grayMedium" style={styles.evoCondition}>{condition}</ThemedText> */}

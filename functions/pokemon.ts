@@ -2,7 +2,11 @@ export function getPokemonId(pokemon: any): number {
   return pokemon.pokedex_id;
 }
 
-export function getPokemonArtwork(id: number | string): string {
+export function getPokemonArtwork(id: number, region?: string | null): string {
+  if (region) {
+    // TyraDex format: regular_region.png
+    return `https://raw.githubusercontent.com/Yarkis01/TyraDex/images/sprites/${id}/regular_${region.toLowerCase()}.png`;
+  }
   return `https://raw.githubusercontent.com/Yarkis01/TyraDex/images/sprites/${id}/regular.png`;
 }
 

@@ -10,6 +10,7 @@ interface EvolutionEntry {
   pokedex_id: number;
   name: string;
   condition?: string;
+  region?: string | null; // Add region to track which variant
 }
 
 // Match the exact structure from Tyradex API
@@ -45,77 +46,84 @@ export function PokemonEvolutions({
   const colors = useThemeColors();
 
   // Helper function to filter evolutions by region compatibility
-  const filterEvolutionsByRegion = (evolutions: EvolutionEntry[]): EvolutionEntry[] => {
+  const filterEvolutionsByRegion = (
+    evolutions: EvolutionEntry[]
+  ): EvolutionEntry[] => {
     if (!Array.isArray(evolutions) || evolutions.length === 0) return [];
-    
-    // Find the current Pokémon in entries to get its region
-    const currentPokemon = entries.find(
-      (e) => e.pokedex_id === currentPokedexId && e.region === currentRegion
-    ) || entries.find((e) => e.pokedex_id === currentPokedexId);
+
+    const currentPokemon =
+      entries.find(
+        (e) => e.pokedex_id === currentPokedexId && e.region === currentRegion
+      ) || entries.find((e) => e.pokedex_id === currentPokedexId);
 
     if (!currentPokemon) return evolutions;
 
     const currentIsRegional = currentPokemon.region !== null;
     const currentRegionName = currentPokemon.region;
 
-    // Filter and map evolutions to show the correct regional variant
     const filtered: EvolutionEntry[] = [];
-    
+
     evolutions.forEach((evo) => {
-      // Find all variants of this evolution in our entries
-      const evoVariants = entries.filter((e) => e.pokedex_id === evo.pokedex_id);
-      
+      const evoVariants = entries.filter(
+        (e) => e.pokedex_id === evo.pokedex_id
+      );
+
       if (evoVariants.length === 0) {
-        // Fallback: keep the evolution as-is if not found in entries
         filtered.push(evo);
         return;
       }
-      
+
       if (currentIsRegional) {
-        // Current Pokémon is regional (e.g., Axoloto de Paldea, Osselait d'Alola)
-        // Try to find evolution with the SAME region
-        const regionalMatch = evoVariants.find((v) => v.region === currentRegionName);
-        
+        const regionalMatch = evoVariants.find(
+          (v) => v.region === currentRegionName
+        );
+
         if (regionalMatch) {
-          // Found a regional variant matching current region (e.g., Terraiste de Paldea, Ossatueur d'Alola)
           filtered.push({
             ...evo,
             name: regionalMatch.name.fr,
+            region: regionalMatch.region, // Pass the region
           });
         } else {
-          // No regional variant exists, use standard form (e.g., some Pokémon don't have regional evolutions)
           const standardMatch = evoVariants.find((v) => v.region === null);
           if (standardMatch) {
             filtered.push({
               ...evo,
               name: standardMatch.name.fr,
+              region: null, // Explicitly null for standard
             });
           }
         }
       } else {
-        // Current Pokémon is standard/national (region === null)
-        // Only show standard evolution (region === null)
         const standardMatch = evoVariants.find((v) => v.region === null);
-        
+
         if (standardMatch) {
           filtered.push({
             ...evo,
             name: standardMatch.name.fr,
+            region: null, // Explicitly null for standard
           });
         }
-        // Don't show regional variants when viewing standard Pokémon
       }
     });
-    
+
     return filtered;
   };
 
   // Determine which evolutions to display and filter by region
-  const preRaw = chainPre && chainPre.length > 0 ? chainPre : (displayedEvolution?.pre ?? []);
-  const nextRaw = chainNext && chainNext.length > 0 ? chainNext : (displayedEvolution?.next ?? []);
+  const preRaw =
+    chainPre && chainPre.length > 0 ? chainPre : displayedEvolution?.pre ?? [];
+  const nextRaw =
+    chainNext && chainNext.length > 0
+      ? chainNext
+      : displayedEvolution?.next ?? [];
 
-  const preFinal = filterEvolutionsByRegion(Array.isArray(preRaw) ? preRaw : []);
-  const nextFinal = filterEvolutionsByRegion(Array.isArray(nextRaw) ? nextRaw : []);
+  const preFinal = filterEvolutionsByRegion(
+    Array.isArray(preRaw) ? preRaw : []
+  );
+  const nextFinal = filterEvolutionsByRegion(
+    Array.isArray(nextRaw) ? nextRaw : []
+  );
 
   const preCount = preFinal.length;
   const nextCount = nextFinal.length;
@@ -134,7 +142,6 @@ export function PokemonEvolutions({
   if (chainStageNumber === 2 && nextCount > 0) {
     return (
       <Row style={{ alignSelf: "stretch", gap: 8 }}>
-        {/* Pre-evolutions (stage 1) */}
         <View style={{ flex: 1, gap: 8 }}>
           {preCount > 0 && (
             <ScrollView
@@ -149,10 +156,11 @@ export function PokemonEvolutions({
               <Row gap={8}>
                 {preFinal.map((p) => (
                   <PokemonEvo
-                    key={`pre-${p.pokedex_id}`}
+                    key={`pre-${p.pokedex_id}-${p.region || 'standard'}`}
                     pokedex_id={p.pokedex_id}
                     name={p.name}
                     condition={p.condition}
+                    region={p.region} // Pass region
                     onPress={() => onNavigate(p.pokedex_id)}
                   />
                 ))}
@@ -161,7 +169,6 @@ export function PokemonEvolutions({
           )}
         </View>
 
-        {/* Separator */}
         <View style={{ width: 1, marginHorizontal: 4, alignSelf: "center", height: 52 }}>
           <View
             style={{
@@ -174,7 +181,6 @@ export function PokemonEvolutions({
           />
         </View>
 
-        {/* Next evolutions (stage 3) */}
         <View style={{ flex: 1, gap: 8 }}>
           <ScrollView
             horizontal
@@ -188,10 +194,11 @@ export function PokemonEvolutions({
             <Row gap={8}>
               {nextFinal.map((n) => (
                 <PokemonEvo
-                  key={`next-${n.pokedex_id}`}
+                  key={`next-${n.pokedex_id}-${n.region || 'standard'}`}
                   pokedex_id={n.pokedex_id}
                   name={n.name}
                   condition={n.condition}
+                  region={n.region} // Pass region
                   onPress={() => onNavigate(n.pokedex_id)}
                 />
               ))}
@@ -201,6 +208,7 @@ export function PokemonEvolutions({
       </Row>
     );
   }
+
 
   // Stage 1: show only next (stage 2)
   // Stage 2 without next (final): show only pre (stage 1)
@@ -221,10 +229,11 @@ export function PokemonEvolutions({
         <Row gap={8}>
           {evolutionsToShow.map((evo) => (
             <PokemonEvo
-              key={`evo-${evo.pokedex_id}`}
+              key={`evo-${evo.pokedex_id}-${evo.region || 'standard'}`}
               pokedex_id={evo.pokedex_id}
               name={evo.name}
               condition={evo.condition}
+              region={evo.region} // Pass region
               onPress={() => onNavigate(evo.pokedex_id)}
             />
           ))}
