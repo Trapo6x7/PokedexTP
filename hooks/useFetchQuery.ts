@@ -168,6 +168,37 @@ type API = {
   };
 };
 
+// Export type for PokemonEntry (based on the structure you're using in your app)
+export type PokemonEntry = {
+  pokedex_id: number;
+  generation: number;
+  category?: string;
+  name: {
+    fr: string;
+    en: string;
+    jp: string;
+  };
+  nameSlug?: string | null;
+  region?: string | null;
+  sprites: {
+    regular: string;
+    shiny: string | null;
+    gmax?: string | null;
+  };
+  types: Array<{
+    name: string;
+    image: string;
+  }>;
+  formes?: Array<{
+    region: string;
+    name: {
+      fr: string;
+      en: string;
+      jp: string;
+    };
+  }> | null;
+};
+
 export function useFetchQuery<T extends keyof API>(
   path: T,
   params?: Record<string, string | number>
@@ -191,8 +222,6 @@ export function useFetchQuery<T extends keyof API>(
     },
   });
 }
-
-
 
 function wait(duration: number) {
   return new Promise((resolve) => setTimeout(resolve, duration * 1000));

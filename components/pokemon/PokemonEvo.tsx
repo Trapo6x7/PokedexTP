@@ -17,14 +17,14 @@ export const PokemonEvo: React.FC<EvoProps> = ({ pokedex_id, name, condition, on
         <Image source={{ uri: getPokemonArtwork(pokedex_id ?? 1) }} style={styles.evoImage} />
       </View>
       <ThemedText variant="subtitle3" style={styles.evoName}>{name}</ThemedText>
-      <ThemedText variant="caption" color="grayMedium" style={styles.evoCondition}>{condition}</ThemedText>
+      {/* <ThemedText variant="caption" color="grayMedium" style={styles.evoCondition}>{condition}</ThemedText> */}
     </Pressable>
   );
 };
 
 const styles = StyleSheet.create({
   evoTile: {
-    width: 110,
+    width: 90,
     padding: 8,
     borderRadius: 8,
     alignItems: 'center',

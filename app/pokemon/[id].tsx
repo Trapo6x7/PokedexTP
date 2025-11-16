@@ -2,6 +2,7 @@ import { Card } from "@/components/Card";
 import { PokemonSpec } from "@/components/pokemon/PokemonSpec";
 import { PokemonStat } from "@/components/pokemon/PokemonStat";
 import { PokemonType } from "@/components/pokemon/PokemonType";
+import { PokemonEvo } from "@/components/pokemon/PokemonEvo";
 import { RootView } from "@/components/RootView";
 import { Row } from "@/components/Row";
 import { ThemedText } from "@/components/ThemedText";
@@ -12,12 +13,16 @@ import {
   formatWeight,
   getPokemonArtwork,
 } from "@/functions/pokemon";
-import { useFetchQuery } from "@/hooks/useFetchQuery";
+import { PokemonEntry, useFetchQuery } from "@/hooks/useFetchQuery";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { router, useLocalSearchParams } from "expo-router";
-import { Image, Pressable, StyleSheet, View } from "react-native";
+import React from "react";
+import { Image, Pressable, StyleSheet, View, ScrollView } from "react-native";
+import { useQuery } from "@tanstack/react-query";
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, runOnJS } from "react-native-reanimated";
 import { useState } from "react";
+import { PokemonEvolutions } from "@/components/pokemon/PokemonEvolutions";
+
 
 export default function Pokemon() {
   const colors = useThemeColors();
@@ -161,17 +166,19 @@ export default function Pokemon() {
       ]
     : basePokemonStats;
 
-  // Build entries including regional forms like the main list (national = region === null)
+ // Build entries including regional forms like the main list (national = region === null)
   const pokemonWithForms = (allPokemons ?? []).filter((p) => p.formes && p.formes.length > 0);
   const regionalFormsQueries = pokemonWithForms
     .map((pokemon) => pokemon.formes!.map((forme) => ({ pokemon, forme })))
     .flat();
 
-  const entries = (allPokemons ?? []).map((pokemon) => ({
+   const entries: PokemonEntry[] = (allPokemons ?? []).map((pokemon) => ({
     pokedex_id: pokemon.pokedex_id,
+    generation: pokemon.generation,
     name: pokemon.name,
     sprites: pokemon.sprites,
     types: pokemon.types,
+    formes: pokemon.formes,
     region: null as string | null,
     nameSlug: null as string | null,
   }));
@@ -179,6 +186,7 @@ export default function Pokemon() {
   regionalFormsQueries.forEach(({ pokemon, forme }) => {
     entries.push({
       pokedex_id: pokemon.pokedex_id,
+      generation: pokemon.generation,
       name: forme.name,
       sprites: {
         regular: `https://raw.githubusercontent.com/Yarkis01/TyraDex/images/sprites/${pokemon.pokedex_id}/regular_${forme.region}.png`,
@@ -195,6 +203,23 @@ export default function Pokemon() {
   });
 
   const activeRegion = params.region ?? null;
+
+  // Fetch PokeAPI evolution chain using pokeapi species -> evolution chain url
+  const pokeChainQuery = useQuery({
+    queryKey: ["pokeapi-evolution-chain", id],
+    queryFn: async () => {
+      if (!id) return null;
+      const speciesResp = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}/`);
+      if (!speciesResp.ok) return null;
+      const speciesJson: any = await speciesResp.json();
+      const chainUrl: string | undefined = speciesJson?.evolution_chain?.url;
+      if (!chainUrl) return null;
+      const chainResp = await fetch(chainUrl);
+      if (!chainResp.ok) return null;
+      return chainResp.json();
+    },
+    enabled: !!id,
+  });
 
   // Create entries for selected region; national if region === null
   const entriesForSelectedRegion = entries.filter((e) =>
@@ -216,6 +241,183 @@ export default function Pokemon() {
 
   const isFirst = currentIndex <= 0;
   const isLast = currentIndex === -1 || currentIndex >= entriesForSelectedRegion.length - 1;
+
+  // compute current stage and pre/next arrays from chainStages (if available)
+
+  function formatChainCondition(details: any[] | null | undefined) {
+    if (!details || details.length === 0) return "";
+    const d = details[0];
+    if (d.min_level) return `Niveau ${d.min_level}`;
+    if (d.trigger?.name === "trade") return "Échange";
+    if (d.item?.name) return `Objet: ${d.item.name}`;
+    if (d.trigger?.name) return d.trigger.name;
+    return "";
+  }
+
+  const chainStages = React.useMemo(() => {
+    const chain = pokeChainQuery.data?.chain;
+    if (!chain) return null;
+
+    const stage1: any[] = [];
+    const stage2: any[] = [];
+    const stage3: any[] = [];
+
+    // helper to extract pokedex id from PokeAPI species url
+    const getSpeciesId = (url: string) => {
+      const parts = url.split("/").filter(Boolean);
+      return parseInt(parts[parts.length - 1], 10);
+    };
+
+    stage1.push({ species: chain.species, details: chain.evolution_details });
+    chain.evolves_to.forEach((n: any) => {
+      stage2.push({ species: n.species, details: n.evolution_details });
+      (n.evolves_to || []).forEach((c: any) => {
+        stage3.push({ species: c.species, details: c.evolution_details });
+      });
+    });
+
+    const mapToEntries = (arr: any[]) =>
+      arr
+        .map((l) => {
+          try {
+            const pid = getSpeciesId(l.species.url);
+            const entry = entries.find((e) => e.pokedex_id === pid);
+            if (!entry) return null;
+            return {
+              pokedex_id: pid,
+              name: entry.name?.fr ?? entry.name?.en ?? entry.name,
+              condition: formatChainCondition(l.details),
+            };
+          } catch (e) {
+            return null;
+          }
+        })
+        .filter(Boolean) as any[];
+
+    return {
+      stage1: mapToEntries(stage1),
+      stage2: mapToEntries(stage2),
+      stage3: mapToEntries(stage3),
+    };
+  }, [pokeChainQuery.data, entries]);
+
+    const chainStageNumber = React.useMemo(() => {
+      if (!chainStages) return null;
+      if (chainStages.stage1.some((s) => s.pokedex_id === id)) return 1;
+      if (chainStages.stage2.some((s) => s.pokedex_id === id)) return 2;
+      if (chainStages.stage3.some((s) => s.pokedex_id === id)) return 3;
+      return null;
+    }, [chainStages, id]);
+
+  const chainPre = React.useMemo(() => {
+    if (!chainStages || !chainStageNumber) return [] as any[];
+    let rawPre: any[] = [];
+    if (chainStageNumber === 2) rawPre = chainStages.stage1;
+    if (chainStageNumber === 3) rawPre = chainStages.stage2;
+    
+    // Filter to match current Pokémon's regional status
+    const currentPokemon = entries.find(
+      (e) => e.pokedex_id === id && e.region === activeRegion
+    ) || entries.find((e) => e.pokedex_id === id);
+    
+    if (!currentPokemon) return rawPre;
+    
+    // Filter: keep only pre-evolutions that match the current region
+    const filtered = rawPre.filter((evo) => {
+      const evoVariants = entries.filter((e) => e.pokedex_id === evo.pokedex_id);
+      
+      if (evoVariants.length === 0) return true;
+      
+      // If current is regional, only keep if pre-evolution has the same region
+      if (currentPokemon.region !== null) {
+        return evoVariants.some((v) => v.region === currentPokemon.region);
+      } else {
+        // If current is standard, only keep if pre-evolution has standard variant
+        return evoVariants.some((v) => v.region === null);
+      }
+    });
+    
+    // Map to use correct regional names
+    return filtered.map((evo) => {
+      const evoVariants = entries.filter((e) => e.pokedex_id === evo.pokedex_id);
+      
+      if (currentPokemon.region !== null) {
+        const regionalMatch = evoVariants.find((v) => v.region === currentPokemon.region);
+        if (regionalMatch) {
+          return {
+            ...evo,
+            name: regionalMatch.name.fr,
+          };
+        }
+      }
+      
+      const standardMatch = evoVariants.find((v) => v.region === null);
+      return {
+        ...evo,
+        name: standardMatch?.name.fr ?? evo.name,
+      };
+    });
+  }, [chainStages, chainStageNumber, id, activeRegion, entries]);
+
+  const chainNext = React.useMemo(() => {
+    // Si on a des données PokeAPI chain, les utiliser
+    if (chainStages && chainStageNumber) {
+      let rawNext: any[] = [];
+      if (chainStageNumber === 1) rawNext = chainStages.stage2;
+      if (chainStageNumber === 2) rawNext = chainStages.stage3;
+      
+      const currentPokemon = entries.find(
+        (e) => e.pokedex_id === id && e.region === activeRegion
+      ) || entries.find((e) => e.pokedex_id === id);
+      
+      if (!currentPokemon) return rawNext;
+
+      console.log('=== DEBUG chainNext ===');
+      console.log('Current Pokemon:', currentPokemon.name.fr, 'Region:', currentPokemon.region);
+      console.log('Raw evolutions from PokeAPI:', rawNext.map(e => `${e.name} (${e.pokedex_id})`));
+      
+      // Pour chaque évolution, vérifier si elle existe dans la bonne région
+      const result = rawNext
+        .map((evo) => {
+          const evoVariants = entries.filter((e) => e.pokedex_id === evo.pokedex_id);
+          
+          console.log(`  Checking evolution ${evo.pokedex_id}, variants:`, 
+            evoVariants.map(v => `${v.name.fr} (region: ${v.region || 'standard'})`));
+          
+          if (currentPokemon.region !== null) {
+            // Pokémon régional : chercher la variante régionale correspondante
+            const regionalMatch = evoVariants.find((v) => v.region === currentPokemon.region);
+            if (regionalMatch) {
+              console.log(`  ✓ Found regional match: ${regionalMatch.name.fr}`);
+              return { ...evo, name: regionalMatch.name.fr };
+            }
+            console.log(`  ✗ No regional match for region ${currentPokemon.region}`);
+            return null; // Exclure cette évolution
+          } else {
+            // Pokémon standard : chercher la variante standard uniquement
+            const standardMatch = evoVariants.find((v) => v.region === null);
+            if (standardMatch) {
+              console.log(`  ✓ Found standard match: ${standardMatch.name.fr}`);
+              return { ...evo, name: standardMatch.name.fr };
+            }
+            console.log(`  ✗ No standard variant found`);
+            return null; // Exclure cette évolution
+          }
+        })
+        .filter((e) => e !== null);
+      
+      console.log('Final filtered evolutions:', result.map(e => e?.name));
+      return result;
+    }
+    
+    // Fallback vers Tyradex
+    return displayedEvolution?.next ?? [];
+  }, [chainStages, chainStageNumber, id, activeRegion, entries, displayedEvolution]);
+
+
+    // counts for centering single items
+    const preCount = (chainPre && chainPre.length > 0 ? chainPre.length : (displayedEvolution?.pre?.length ?? 0));
+    const nextCount = (chainNext && chainNext.length > 0 ? chainNext.length : (displayedEvolution?.next?.length ?? 0));
 
   return (
     <RootView bakcgroundColor={colorType}>
@@ -356,57 +558,28 @@ export default function Pokemon() {
             ))}
           </View>
           
-          <ThemedText variant="subtitle1" style={{ color: colorType }}>
+ <ThemedText variant="subtitle1" style={{ color: colorType }}>
             Évolutions
           </ThemedText>
-          {!pokemon?.evolution?.pre && !pokemon?.evolution?.next ? (
-            <ThemedText style={{ textAlign: "center", color: colors.grayMedium }}>
-              Pas d'évolution
-            </ThemedText>
-          ) : (
-            <Row style={{ alignSelf: "stretch", gap: 8 }}>
-              {/* Pré-évolution directe à gauche (dernière de la liste) */}
-              <View style={{ flex: 1, gap: 8 }}>
-                {displayedEvolution?.pre && displayedEvolution.pre.length > 0 && (
-                  <Pressable
-                    onPress={() => {
-                      const targetId = displayedEvolution.pre![displayedEvolution.pre!.length - 1].pokedex_id;
-                      const targetName = entries.find((e) => e.pokedex_id === targetId && e.region === activeRegion)?.nameSlug ?? entries.find((e) => e.pokedex_id === targetId)?.nameSlug;
-                      router.setParams({ id: String(targetId), region: activeRegion ?? undefined, name: targetName ?? undefined });
-                    }}
-                    style={{ backgroundColor: colors.grayWhite, padding: 12, borderRadius: 8, alignItems: "center" }}
-                  >
-                    <ThemedText variant="subtitle3">
-                      ← {displayedEvolution.pre[displayedEvolution.pre.length - 1].name}
-                    </ThemedText>
-                    <ThemedText variant="caption" color="grayMedium">
-                      {displayedEvolution.pre[displayedEvolution.pre.length - 1].condition}
-                    </ThemedText>
-                  </Pressable>
-                )}
-              </View>
-              {/* Évolution suivante directe à droite (première de la liste) */}
-              <View style={{ flex: 1, gap: 8 }}>
-                {displayedEvolution?.next && displayedEvolution.next.length > 0 && (
-                  <Pressable
-                    onPress={() => {
-                      const targetId = displayedEvolution.next![0].pokedex_id;
-                      const targetName = entries.find((e) => e.pokedex_id === targetId && e.region === activeRegion)?.nameSlug ?? entries.find((e) => e.pokedex_id === targetId)?.nameSlug;
-                      router.setParams({ id: String(targetId), region: activeRegion ?? undefined, name: targetName ?? undefined });
-                    }}
-                    style={{ backgroundColor: colors.grayWhite, padding: 12, borderRadius: 8, alignItems: "center" }}
-                  >
-                    <ThemedText variant="subtitle3">
-                      {displayedEvolution.next[0].name} →
-                    </ThemedText>
-                    <ThemedText variant="caption" color="grayMedium">
-                      {displayedEvolution.next[0].condition}
-                    </ThemedText>
-                  </Pressable>
-                )}
-              </View>
-            </Row>
-          )}
+         <PokemonEvolutions
+            chainPre={chainPre}
+            chainNext={chainNext}
+            chainStageNumber={chainStageNumber}
+            displayedEvolution={displayedEvolution}
+            colorType={colorType}
+            currentPokedexId={pokemon?.pokedex_id ?? 0}
+            currentRegion={activeRegion}
+            entries={entries}
+            onNavigate={(targetId) => {
+              const targetName = entries.find((e) => e.pokedex_id === targetId && e.region === activeRegion)?.nameSlug 
+                ?? entries.find((e) => e.pokedex_id === targetId)?.nameSlug;
+              router.setParams({ 
+                id: String(targetId), 
+                region: activeRegion ?? undefined, 
+                name: targetName ?? undefined 
+              });
+            }}
+          />
         </Card>
       </View>
     </RootView>
@@ -440,9 +613,9 @@ const styles = StyleSheet.create({
   body: {  },
   card: {
     paddingHorizontal: 20,
-    paddingTop: 60,
+    paddingTop: 50,
     paddingBottom: 20,
-    gap: 16,
+    gap: 8,
     alignItems: "center",
     marginTop: 144
   },

@@ -82,11 +82,20 @@ export default function Index() {
     activePokedex === "national" ? p.region === null : p.region === activePokedex
   );
 
-  const filteredPokemon = pokemonForSelectedPokedex.filter(
-    (p) =>
-      p.name.fr.toLowerCase().includes(search.toLowerCase()) ||
-      p.pokedex_id.toString() === search
-  );
+  const filteredPokemon = pokemonForSelectedPokedex.filter((p) => {
+    // Normalize both search term and pokemon name for comparison
+    const normalizedSearch = search
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+    
+    const normalizedName = p.name.fr
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+    
+    return normalizedName.includes(normalizedSearch);
+  });
 
   // Order by pokedex index; if equal use localized name
   const sortedPokemon = [...filteredPokemon].sort((a, b) => {
