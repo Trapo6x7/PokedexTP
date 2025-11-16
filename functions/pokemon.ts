@@ -74,9 +74,9 @@ export const basePokemonStats = [
     }
   },
   {
-    from: "cubone",
+    from: "osselait",
     fromForm: "alola",
-    to: "marowak",
+    to: "ossatueur",
     toForm: "alola",
     conditions: {
       level: 28,
@@ -84,53 +84,60 @@ export const basePokemonStats = [
     }
   },
   {
-    from: "wooper",
+    from: "axoloto",
     fromForm: "paldea",
-    to: "clodsire",
+    to: "terraiste",
     conditions: {
       level: 20
     }
   },
   {
-    from: "slowpoke",
+    from: "axoloto",
+    to: "maraiste",
+    conditions: {
+      level: 20
+    }
+  },
+  {
+    from: "ramoloss",
     fromForm: "galar",
-    to: "slowbro",
+    to: "flagadoss",
     toForm: "galar",
     conditions: {
       item: "galarica-cuff"
     }
   },
   {
-    from: "slowpoke",
+    from: "ramoloss",
     fromForm: "galar",
-    to: "slowking",
+    to: "roigada",
     toForm: "galar",
     conditions: {
       item: "galarica-wreath"
     }
   },
   {
-    from: "growlithe",
+    from: "caninos",
     fromForm: "hisui",
-    to: "arcanine",
+    to: "arcanin",
     toForm: "hisui",
     conditions: {
       item: "fire-stone"
     }
   },
   {
-    from: "vulpix",
+    from: "goupix",
     fromForm: "alola",
-    to: "ninetales",
+    to: "feunard",
     toForm: "alola",
     conditions: {
       item: "ice-stone"
     }
   },
   {
-    from: "basculin",
+    from: "bargantua",
     fromForm: "white-striped",
-    to: "basculegion",
+    to: "paragruel",
     conditions: {
       selfDamage: 294
     }
@@ -138,7 +145,7 @@ export const basePokemonStats = [
   {
     from: "qwilfish",
     fromForm: "hisui",
-    to: "overqwil",
+    to: "qwilpik",
     conditions: {
       moveCount: {
         move: "barb-barrage",
@@ -147,8 +154,8 @@ export const basePokemonStats = [
     }
   },
   {
-    from: "stantler",
-    to: "wyrdeer",
+    from: "cerfrousse",
+    to: "cerbyllin",
     conditions: {
       moveCount: {
         move: "psyshield-bash",

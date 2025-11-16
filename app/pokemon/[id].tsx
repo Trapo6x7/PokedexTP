@@ -566,12 +566,25 @@ export default function Pokemon() {
             currentPokedexId={pokemon?.pokedex_id ?? 0}
             currentRegion={activeRegion}
             entries={entries}
-            onNavigate={(targetId) => {
-              const targetName = entries.find((e) => e.pokedex_id === targetId && e.region === activeRegion)?.nameSlug 
+            onNavigate={(targetId, targetRegion) => {
+              console.log('=== NAVIGATION DEBUG ===');
+              console.log('Target ID:', targetId);
+              console.log('Target Region:', targetRegion);
+              console.log('Active Region:', activeRegion);
+              
+              const targetName = entries.find((e) => e.pokedex_id === targetId && e.region === targetRegion)?.nameSlug 
                 ?? entries.find((e) => e.pokedex_id === targetId)?.nameSlug;
+              
+              console.log('Target Name Found:', targetName);
+              console.log('Setting params:', { 
+                id: String(targetId), 
+                region: targetRegion ?? undefined, 
+                name: targetName ?? undefined 
+              });
+              
               router.setParams({ 
                 id: String(targetId), 
-                region: activeRegion ?? undefined, 
+                region: targetRegion ?? undefined, 
                 name: targetName ?? undefined 
               });
             }}
