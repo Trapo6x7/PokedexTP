@@ -49,7 +49,25 @@ export default function Pokemon() {
   const [currentForm, setCurrentForm] = useState<
     "regular" | "shiny" | "mega" | "gmax"
   >("regular");
+  const [spriteStyle, setSpriteStyle] = useState<
+    "artwork" | "2d" | "showdown"
+  >("artwork");
   const [megaIndex, setMegaIndex] = useState(0);
+
+  // Fetch PokeAPI sprites
+  const pokeApiSpritesQuery = useQuery({
+    queryKey: ["pokeapi-sprites", id],
+    queryFn: async () => {
+      if (!id) return null;
+      const response = await fetch(
+        `https://pokeapi.co/api/v2/pokemon/${id}/`
+      );
+      if (!response.ok) return null;
+      const data: any = await response.json();
+      return data.sprites;
+    },
+    enabled: !!id,
+  });
 
   // Get available forms
   const availableForms: Array<"regular" | "shiny" | "mega" | "gmax"> = [
@@ -73,6 +91,33 @@ export default function Pokemon() {
     if (!pokemon) return "";
 
     const activeRegion = (params as any).region ?? null;
+    const pokeApiSprites = pokeApiSpritesQuery.data;
+
+    // Only use 2D and Showdown sprites for regular and shiny forms (not mega/gmax)
+    if ((spriteStyle === "2d" || spriteStyle === "showdown") && 
+        currentForm !== "mega" && 
+        currentForm !== "gmax" && 
+        pokeApiSprites) {
+      
+      if (spriteStyle === "2d") {
+        if (currentForm === "shiny") {
+          return pokeApiSprites.front_shiny || pokeApiSprites.front_default;
+        }
+        return pokeApiSprites.front_default;
+      }
+
+      if (spriteStyle === "showdown" && pokeApiSprites?.other?.showdown) {
+        if (currentForm === "shiny") {
+          return (
+            pokeApiSprites.other.showdown.front_shiny ||
+            pokeApiSprites.other.showdown.front_default
+          );
+        }
+        return pokeApiSprites.other.showdown.front_default;
+      }
+    }
+
+    // Artwork style (default) or mega/gmax forms - use TyraDex sprites
     if (activeRegion) {
       // look for a regional entry matching this id
       const regionalEntry = entries.find(
@@ -137,6 +182,16 @@ export default function Pokemon() {
 
   const toggleForm = () => {
     const performSwitch = () => {
+      // If we're in 2D or Showdown mode, only cycle between regular and shiny
+      if (spriteStyle === "2d" || spriteStyle === "showdown") {
+        if (currentForm === "regular" && availableForms.includes("shiny")) {
+          setCurrentForm("shiny");
+        } else {
+          setCurrentForm("regular");
+        }
+        return;
+      }
+
       // If we're on mega form and there are multiple mega evolutions, cycle through them
       if (currentForm === "mega" && pokemon?.evolution?.mega) {
         const megaCount = pokemon.evolution.mega.length;
@@ -522,6 +577,59 @@ export default function Pokemon() {
             #{params.id.padStart(3, "0")}
           </ThemedText>
         </Row>
+        <View style={{ position: "absolute", top: 50, right: 10, gap: 8, zIndex: 10 }}>
+          <Pressable
+            onPress={() => setSpriteStyle("artwork")}
+            style={[
+              styles.styleButton,
+              spriteStyle === "artwork" && {
+                backgroundColor: colorType,
+                borderColor: colorType,
+              },
+            ]}
+          >
+            <ThemedText
+              variant="caption"
+              color={spriteStyle === "artwork" ? "grayWhite" : "grayMedium"}
+            >
+              Artwork
+            </ThemedText>
+          </Pressable>
+          <Pressable
+            onPress={() => setSpriteStyle("2d")}
+            style={[
+              styles.styleButton,
+              spriteStyle === "2d" && {
+                backgroundColor: colorType,
+                borderColor: colorType,
+              },
+            ]}
+          >
+            <ThemedText
+              variant="caption"
+              color={spriteStyle === "2d" ? "grayWhite" : "grayMedium"}
+            >
+              2D
+            </ThemedText>
+          </Pressable>
+          <Pressable
+            onPress={() => setSpriteStyle("showdown")}
+            style={[
+              styles.styleButton,
+              spriteStyle === "showdown" && {
+                backgroundColor: colorType,
+                borderColor: colorType,
+              },
+            ]}
+          >
+            <ThemedText
+              variant="caption"
+              color={spriteStyle === "showdown" ? "grayWhite" : "grayMedium"}
+            >
+              Animé
+            </ThemedText>
+          </Pressable>
+        </View>
 
         <Card style={styles.card}>
           <Row style={styles.imageRow}>
@@ -547,6 +655,7 @@ export default function Pokemon() {
                     uri: getCurrentSprite(),
                   }}
                   style={[{ width: 220, height: 220 }, styles.artwork]}
+                  resizeMode="contain"
                 />
               </Animated.View>
               {!hasOnlyRegularSprite && currentForm !== "regular" && (
@@ -724,6 +833,13 @@ const styles = StyleSheet.create({
   formText: {
     fontSize: 10,
     fontWeight: "bold",
+  },
+  styleButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#D0D0D0",
   },
   body: {},
   card: {
