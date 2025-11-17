@@ -114,17 +114,12 @@ export default function Index() {
 
   return (
     <RootView bakcgroundColor={colors.tint}>
-      <Row style={styles.header} gap={16}>
+      <Row style={styles.header} gap={12}>
         <Image
           source={require("@/assets/images/pokedex.png")}
           style={{ width: 24, height: 24 }}
           resizeMode="contain"
         />
-        <ThemedText variant="headline" color="grayLight">
-          Trapokédex
-        </ThemedText>
-      </Row>
-      <Row gap={16} style={styles.form}>
         <SearchBar value={search} onChange={setSearch} />
         <SortButton value={activePokedex} onChange={setActivePokedex} />
       </Row>
@@ -162,9 +157,8 @@ export default function Index() {
 }
 
 const styles = StyleSheet.create({
-  body: { flex: 1, marginTop: 8 },
+  body: { flex: 1 },
   gridGap: { gap: 8 },
   list: { padding: 12 },
-  form: { paddingHorizontal: 12 },
-  header: { paddingHorizontal: 12, alignItems: "center" }, // centrer verticalement image + texte
+  header: { paddingHorizontal: 12, paddingTop: 16, alignItems: "center" },
 });

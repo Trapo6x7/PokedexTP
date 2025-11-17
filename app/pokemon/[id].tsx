@@ -54,6 +54,16 @@ export default function Pokemon() {
   >("artwork");
   const [megaIndex, setMegaIndex] = useState(0);
 
+  const activeRegion = params.region ?? null;
+  const isRegionalForm = activeRegion !== null;
+
+  // Auto-reset to artwork when viewing a regional form in 2D or Showdown mode
+  React.useEffect(() => {
+    if (isRegionalForm && (spriteStyle === "2d" || spriteStyle === "showdown")) {
+      setSpriteStyle("artwork");
+    }
+  }, [isRegionalForm, params.region]);
+
   // Fetch PokeAPI sprites
   const pokeApiSpritesQuery = useQuery({
     queryKey: ["pokeapi-sprites", id],
@@ -68,6 +78,17 @@ export default function Pokemon() {
     },
     enabled: !!id,
   });
+
+  // Check if showdown sprites are available
+  const pokeApiSprites = pokeApiSpritesQuery.data;
+  const hasShowdownSprites = pokeApiSprites?.other?.showdown?.front_default != null;
+
+  // Auto-reset to artwork if showdown is selected but not available
+  React.useEffect(() => {
+    if (spriteStyle === "showdown" && !hasShowdownSprites && pokeApiSpritesQuery.data) {
+      setSpriteStyle("artwork");
+    }
+  }, [hasShowdownSprites, pokeApiSpritesQuery.data]);
 
   // Get available forms
   const availableForms: Array<"regular" | "shiny" | "mega" | "gmax"> = [
@@ -277,8 +298,6 @@ export default function Pokemon() {
         .replace(/[\u0300-\u036f]/g, ""),
     });
   });
-
-  const activeRegion = params.region ?? null;
 
   // Fetch PokeAPI evolution chain using pokeapi species -> evolution chain url
   const pokeChainQuery = useQuery({
@@ -491,43 +510,32 @@ export default function Pokemon() {
             (e) => e.pokedex_id === evo.pokedex_id
           );
 
-          console.log(
-            `  Checking evolution ${evo.pokedex_id}, variants:`,
-            evoVariants.map(
-              (v) => `${v.name.fr} (region: ${v.region || "standard"})`
-            )
-          );
-
+         
           if (currentPokemon.region !== null) {
             // Pokémon régional : chercher la variante régionale correspondante
             const regionalMatch = evoVariants.find(
               (v) => v.region === currentPokemon.region
             );
             if (regionalMatch) {
-              console.log(`  ✓ Found regional match: ${regionalMatch.name.fr}`);
+             
               return { ...evo, name: regionalMatch.name.fr };
             }
-            console.log(
-              `  ✗ No regional match for region ${currentPokemon.region}`
-            );
+           
+       
             return null; // Exclure cette évolution
           } else {
             // Pokémon standard : chercher la variante standard uniquement
             const standardMatch = evoVariants.find((v) => v.region === null);
             if (standardMatch) {
-              console.log(`  ✓ Found standard match: ${standardMatch.name.fr}`);
+           
               return { ...evo, name: standardMatch.name.fr };
             }
-            console.log(`  ✗ No standard variant found`);
+          
             return null; // Exclure cette évolution
           }
         })
         .filter((e) => e !== null);
 
-      console.log(
-        "Final filtered evolutions:",
-        result.map((e) => e?.name)
-      );
       return result;
     }
 
@@ -583,48 +591,65 @@ export default function Pokemon() {
             style={[
               styles.styleButton,
               spriteStyle === "artwork" && {
-                backgroundColor: colorType,
-                borderColor: colorType,
+                backgroundColor: "white",
               },
             ]}
           >
             <ThemedText
               variant="caption"
-              color={spriteStyle === "artwork" ? "grayWhite" : "grayMedium"}
+              color={spriteStyle === "artwork" ? undefined : "grayWhite"}
+              style={[
+                styles.buttonText,
+                spriteStyle === "artwork" && { color: colorType },
+              ]}
             >
               Artwork
             </ThemedText>
           </Pressable>
           <Pressable
-            onPress={() => setSpriteStyle("2d")}
+            onPress={() => !isRegionalForm && setSpriteStyle("2d")}
+            disabled={isRegionalForm}
             style={[
               styles.styleButton,
               spriteStyle === "2d" && {
-                backgroundColor: colorType,
-                borderColor: colorType,
+                backgroundColor: "white",
               },
+              isRegionalForm && { opacity: 0.5 },
             ]}
           >
             <ThemedText
               variant="caption"
-              color={spriteStyle === "2d" ? "grayWhite" : "grayMedium"}
+              color={spriteStyle === "2d" ? undefined : "grayWhite"}
+              style={[
+                styles.buttonText,
+                spriteStyle === "2d" && { color: colorType },
+              ]}
             >
               2D
             </ThemedText>
           </Pressable>
           <Pressable
-            onPress={() => setSpriteStyle("showdown")}
+            onPress={() => {
+              if (!isRegionalForm && hasShowdownSprites) {
+                setSpriteStyle("showdown");
+              }
+            }}
+            disabled={isRegionalForm || !hasShowdownSprites}
             style={[
               styles.styleButton,
               spriteStyle === "showdown" && {
-                backgroundColor: colorType,
-                borderColor: colorType,
+                backgroundColor: "white",
               },
+              (isRegionalForm || !hasShowdownSprites) && { opacity: 0.5 },
             ]}
           >
             <ThemedText
               variant="caption"
-              color={spriteStyle === "showdown" ? "grayWhite" : "grayMedium"}
+              color={spriteStyle === "showdown" ? undefined : "grayWhite"}
+              style={[
+                styles.buttonText,
+                spriteStyle === "showdown" && { color: colorType },
+              ]}
             >
               Animé
             </ThemedText>
@@ -790,12 +815,7 @@ export default function Pokemon() {
                 )?.nameSlug ??
                 entries.find((e) => e.pokedex_id === targetId)?.nameSlug;
 
-              console.log("Target Name Found:", targetName);
-              console.log("Setting params:", {
-                id: String(targetId),
-                region: targetRegion ?? undefined,
-                name: targetName ?? undefined,
-              });
+           
 
               router.setParams({
                 id: String(targetId),
@@ -839,7 +859,12 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#D0D0D0",
+    borderColor: "white",
+    alignItems: "center",
+  },
+  buttonText: {
+    fontWeight: "bold",
+    textAlign: "center",
   },
   body: {},
   card: {

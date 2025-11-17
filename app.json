@@ -14,7 +14,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/trapokedexicon.png",
-        "backgroundColor": "#E6F4FE"
+        "backgroundColor": "#ff0000ff"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -29,7 +29,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/trapokedexhome.png",
+          "image": "./assets/images/trapokedexicon.png",
           "resizeMode": "cover",
           "backgroundColor": "#ff0000ff",
           "dark": {
