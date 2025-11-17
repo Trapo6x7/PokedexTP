@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 8,
     alignItems: 'center',
-    minHeight: 128,
+    height: 135,
     justifyContent: 'flex-start',
   },
   evoImageContainer: {
@@ -58,12 +58,12 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
   evoName: {
-    marginTop: 8,
+    marginTop: 4,
     textAlign: 'center',
   },
   evoCondition: {
-    marginTop: 4,
-    minHeight: 20,
+    marginTop: 2,
+    height: 36,
     textAlign: 'center',
   },
 });

@@ -313,6 +313,20 @@ export default function Pokemon() {
       });
     });
 
+    // Helper to get condition from TyraDex data instead of PokeAPI
+    const getTyradexCondition = (targetId: number) => {
+      // Look for the condition in the evolution chain from TyraDex
+      if (displayedEvolution?.next) {
+        const evoNext = displayedEvolution.next.find((e) => e.pokedex_id === targetId);
+        if (evoNext?.condition) return evoNext.condition;
+      }
+      if (displayedEvolution?.pre) {
+        const evoPre = displayedEvolution.pre.find((e) => e.pokedex_id === targetId);
+        if (evoPre?.condition) return evoPre.condition;
+      }
+      return "";
+    };
+
     const mapToEntries = (arr: any[]) =>
       arr
         .map((l) => {
@@ -323,7 +337,7 @@ export default function Pokemon() {
             return {
               pokedex_id: pid,
               name: entry.name?.fr ?? entry.name?.en ?? entry.name,
-              condition: formatChainCondition(l.details),
+              condition: getTyradexCondition(pid) || formatChainCondition(l.details),
             };
           } catch (e) {
             return null;
@@ -336,7 +350,7 @@ export default function Pokemon() {
       stage2: mapToEntries(stage2),
       stage3: mapToEntries(stage3),
     };
-  }, [pokeChainQuery.data, entries]);
+  }, [pokeChainQuery.data, entries, displayedEvolution]);
 
   const chainStageNumber = React.useMemo(() => {
     if (!chainStages) return null;
