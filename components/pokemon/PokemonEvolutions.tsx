@@ -185,41 +185,11 @@ export function PokemonEvolutions({
               ...evo,
               name: targetVariant.name.fr,
               region: targetVariant.region,
+              condition: evo.condition,
             });
           }
         }
         // If special rule exists but doesn't match, don't add anything
-        return; // Don't process further
-      }
-
-      if (specialEvo) {
-        console.log("Found special evolution rule:", specialEvo);
-        // For pre-evolutions, use fromForm; for next evolutions, use toForm
-        const targetForm = isPre
-          ? "fromForm" in specialEvo && specialEvo.fromForm
-            ? specialEvo.fromForm
-            : null
-          : "toForm" in specialEvo && specialEvo.toForm
-          ? specialEvo.toForm
-          : null;
-
-        console.log("Target form:", targetForm, "isPre:", isPre);
-        const targetVariant = evoVariants.find((v) => v.region === targetForm);
-
-        console.log(
-          "Target variant found:",
-          targetVariant?.name.fr,
-          "region:",
-          targetVariant?.region
-        );
-
-        if (targetVariant) {
-          filtered.push({
-            ...evo,
-            name: targetVariant.name.fr,
-            region: targetVariant.region,
-          });
-        }
         return; // Don't process further
       }
 
@@ -237,12 +207,14 @@ export function PokemonEvolutions({
               ...evo,
               name: regionalMatch.name.fr,
               region: regionalMatch.region,
+              condition: evo.condition,
             });
           } else if (standardMatch) {
             filtered.push({
               ...evo,
               name: standardMatch.name.fr,
               region: null,
+              condition: evo.condition,
             });
           }
         } else {
@@ -251,6 +223,7 @@ export function PokemonEvolutions({
               ...evo,
               name: regionalMatch.name.fr,
               region: regionalMatch.region,
+              condition: evo.condition,
             });
           }
 
@@ -260,6 +233,7 @@ export function PokemonEvolutions({
               ...evo,
               name: standardMatch.name.fr,
               region: null,
+              condition: evo.condition,
             });
           }
         }
@@ -303,6 +277,7 @@ export function PokemonEvolutions({
               ...evo,
               name: standardMatch.name.fr,
               region: null,
+              condition: evo.condition,
             });
           }
         } else {

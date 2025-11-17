@@ -160,10 +160,17 @@ export const specialEvolutions = [
   },
   {
     from: "bargantua",
-    fromForm: "white-striped" as const,
     to: "paragruel",
     conditions: {
       selfDamage: 294,
+    },
+  },
+  {
+    from: "canarticho",
+    fromForm: "galar" as const,
+    to: "palarticho",
+    conditions: {
+      criticalHitsInOneBattle: 3,
     },
   },
   {
