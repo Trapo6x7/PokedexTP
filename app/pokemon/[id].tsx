@@ -1,8 +1,8 @@
 import { Card } from "@/components/Card";
+import { PokemonEvolutions } from "@/components/pokemon/PokemonEvolutions";
 import { PokemonSpec } from "@/components/pokemon/PokemonSpec";
 import { PokemonStat } from "@/components/pokemon/PokemonStat";
 import { PokemonType } from "@/components/pokemon/PokemonType";
-import { PokemonEvo } from "@/components/pokemon/PokemonEvo";
 import { RootView } from "@/components/RootView";
 import { Row } from "@/components/Row";
 import { ThemedText } from "@/components/ThemedText";
@@ -10,23 +10,20 @@ import { Colors } from "@/constants/Colors";
 import {
   basePokemonStats,
   formatSize,
-  formatWeight,
-  getPokemonArtwork,
+  formatWeight
 } from "@/functions/pokemon";
 import { PokemonEntry, useFetchQuery } from "@/hooks/useFetchQuery";
 import { useThemeColors } from "@/hooks/useThemeColors";
-import { router, useLocalSearchParams } from "expo-router";
-import React from "react";
-import { Image, Pressable, StyleSheet, View, ScrollView } from "react-native";
 import { useQuery } from "@tanstack/react-query";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useState } from "react";
+import { Image, Pressable, StyleSheet, View } from "react-native";
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
   runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
 } from "react-native-reanimated";
-import { useState } from "react";
-import { PokemonEvolutions } from "@/components/pokemon/PokemonEvolutions";
 
 export default function Pokemon() {
   const colors = useThemeColors();
@@ -736,8 +733,8 @@ export default function Pokemon() {
               <PokemonType name={type.name} key={type.name} />
             ))}
           </Row>
-          <ThemedText variant="subtitle1" style={{ color: colorType }}>
-            À propos
+          <ThemedText variant="subtitle2" color="grayMedium">
+            {bio}
           </ThemedText>
           <Row>
             <PokemonSpec
@@ -751,22 +748,10 @@ export default function Pokemon() {
               image={require("@/assets/images/weight.png")}
             />
             <PokemonSpec
-              // style={{
-              //   borderStyle: "solid",
-              //   borderRightWidth: 1,
-              //   borderColor: colors.grayLight,
-              // }}
               title={formatSize(regionalPokemon?.height ?? pokemon?.height)}
               description="Taille"
               image={require("@/assets/images/straighten.png")}
             />
-            {/* <PokemonSpec
-                title={pokemon?.moves
-                  .slice(0, 2)
-                  .map((m) => m.move.name)
-                  .join("\n")}
-                description="Moves"
-              /> */}
           </Row>
 
           {/* Stats*/}
@@ -775,7 +760,7 @@ export default function Pokemon() {
             {(() => {
               // Prefer region-specific names when available
               const displayedName = regionalPokemon?.name ?? pokemon?.name;
-              const parts = [displayedName?.en, displayedName?.jp, bio].filter(
+              const parts = [displayedName?.fr, displayedName?.en, displayedName?.jp].filter(
                 Boolean
               );
               return (
