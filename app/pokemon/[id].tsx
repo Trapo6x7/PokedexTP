@@ -49,9 +49,9 @@ export default function Pokemon() {
   const [currentForm, setCurrentForm] = useState<
     "regular" | "shiny" | "mega" | "gmax"
   >("regular");
-  const [spriteStyle, setSpriteStyle] = useState<
-    "artwork" | "2d" | "showdown"
-  >("artwork");
+  const [spriteStyle, setSpriteStyle] = useState<"artwork" | "2d" | "showdown">(
+    "artwork"
+  );
   const [megaIndex, setMegaIndex] = useState(0);
 
   const activeRegion = params.region ?? null;
@@ -59,19 +59,26 @@ export default function Pokemon() {
 
   // Auto-reset to artwork when viewing a regional form in 2D or Showdown mode
   React.useEffect(() => {
-    if (isRegionalForm && (spriteStyle === "2d" || spriteStyle === "showdown")) {
+    if (
+      isRegionalForm &&
+      (spriteStyle === "2d" || spriteStyle === "showdown")
+    ) {
       setSpriteStyle("artwork");
     }
   }, [isRegionalForm, params.region]);
+
+  // Reset form to regular when switching sprite styles
+  React.useEffect(() => {
+    setCurrentForm("regular");
+    setMegaIndex(0);
+  }, [spriteStyle]);
 
   // Fetch PokeAPI sprites
   const pokeApiSpritesQuery = useQuery({
     queryKey: ["pokeapi-sprites", id],
     queryFn: async () => {
       if (!id) return null;
-      const response = await fetch(
-        `https://pokeapi.co/api/v2/pokemon/${id}/`
-      );
+      const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}/`);
       if (!response.ok) return null;
       const data: any = await response.json();
       return data.sprites;
@@ -81,11 +88,16 @@ export default function Pokemon() {
 
   // Check if showdown sprites are available
   const pokeApiSprites = pokeApiSpritesQuery.data;
-  const hasShowdownSprites = pokeApiSprites?.other?.showdown?.front_default != null;
+  const hasShowdownSprites =
+    pokeApiSprites?.other?.showdown?.front_default != null;
 
   // Auto-reset to artwork if showdown is selected but not available
   React.useEffect(() => {
-    if (spriteStyle === "showdown" && !hasShowdownSprites && pokeApiSpritesQuery.data) {
+    if (
+      spriteStyle === "showdown" &&
+      !hasShowdownSprites &&
+      pokeApiSpritesQuery.data
+    ) {
       setSpriteStyle("artwork");
     }
   }, [hasShowdownSprites, pokeApiSpritesQuery.data]);
@@ -115,11 +127,12 @@ export default function Pokemon() {
     const pokeApiSprites = pokeApiSpritesQuery.data;
 
     // Only use 2D and Showdown sprites for regular and shiny forms (not mega/gmax)
-    if ((spriteStyle === "2d" || spriteStyle === "showdown") && 
-        currentForm !== "mega" && 
-        currentForm !== "gmax" && 
-        pokeApiSprites) {
-      
+    if (
+      (spriteStyle === "2d" || spriteStyle === "showdown") &&
+      currentForm !== "mega" &&
+      currentForm !== "gmax" &&
+      pokeApiSprites
+    ) {
       if (spriteStyle === "2d") {
         if (currentForm === "shiny") {
           return pokeApiSprites.front_shiny || pokeApiSprites.front_default;
@@ -391,11 +404,15 @@ export default function Pokemon() {
     const getTyradexCondition = (targetId: number) => {
       // Look for the condition in the evolution chain from TyraDex
       if (displayedEvolution?.next) {
-        const evoNext = displayedEvolution.next.find((e) => e.pokedex_id === targetId);
+        const evoNext = displayedEvolution.next.find(
+          (e) => e.pokedex_id === targetId
+        );
         if (evoNext?.condition) return evoNext.condition;
       }
       if (displayedEvolution?.pre) {
-        const evoPre = displayedEvolution.pre.find((e) => e.pokedex_id === targetId);
+        const evoPre = displayedEvolution.pre.find(
+          (e) => e.pokedex_id === targetId
+        );
         if (evoPre?.condition) return evoPre.condition;
       }
       return "";
@@ -411,7 +428,8 @@ export default function Pokemon() {
             return {
               pokedex_id: pid,
               name: entry.name?.fr ?? entry.name?.en ?? entry.name,
-              condition: getTyradexCondition(pid) || formatChainCondition(l.details),
+              condition:
+                getTyradexCondition(pid) || formatChainCondition(l.details),
             };
           } catch (e) {
             return null;
@@ -510,27 +528,23 @@ export default function Pokemon() {
             (e) => e.pokedex_id === evo.pokedex_id
           );
 
-         
           if (currentPokemon.region !== null) {
             // Pokémon régional : chercher la variante régionale correspondante
             const regionalMatch = evoVariants.find(
               (v) => v.region === currentPokemon.region
             );
             if (regionalMatch) {
-             
               return { ...evo, name: regionalMatch.name.fr };
             }
-           
-       
+
             return null; // Exclure cette évolution
           } else {
             // Pokémon standard : chercher la variante standard uniquement
             const standardMatch = evoVariants.find((v) => v.region === null);
             if (standardMatch) {
-           
               return { ...evo, name: standardMatch.name.fr };
             }
-          
+
             return null; // Exclure cette évolution
           }
         })
@@ -585,7 +599,15 @@ export default function Pokemon() {
             #{params.id.padStart(3, "0")}
           </ThemedText>
         </Row>
-        <View style={{ position: "absolute", top: 50, right: 10, gap: 8, zIndex: 10 }}>
+        <View
+          style={{
+            position: "absolute",
+            top: 50,
+            right: 10,
+            gap: 8,
+            zIndex: 10,
+          }}
+        >
           <Pressable
             onPress={() => setSpriteStyle("artwork")}
             style={[
@@ -814,8 +836,6 @@ export default function Pokemon() {
                   (e) => e.pokedex_id === targetId && e.region === targetRegion
                 )?.nameSlug ??
                 entries.find((e) => e.pokedex_id === targetId)?.nameSlug;
-
-           
 
               router.setParams({
                 id: String(targetId),
