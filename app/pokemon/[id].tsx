@@ -70,6 +70,13 @@ export default function Pokemon() {
     setMegaIndex(0);
   }, [spriteStyle]);
 
+  // Reset to artwork when changing Pokemon
+  React.useEffect(() => {
+    setSpriteStyle("artwork");
+    setCurrentForm("regular");
+    setMegaIndex(0);
+  }, [params.id, params.region]);
+
   // Fetch PokeAPI sprites
   const pokeApiSpritesQuery = useQuery({
     queryKey: ["pokeapi-sprites", id],
