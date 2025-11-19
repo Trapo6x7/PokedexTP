@@ -135,15 +135,6 @@ export const regionalEvolutions = {
       // no special condition
     },
     {
-      from: "mmime",
-      to: null,
-      from_name_fr: "m. mime",
-      to_name_fr: null,
-      fromRegion: null,
-      toRegion: null,
-      condition: null,
-    },
-    {
       from: "mateloutre",
       to: "clamiral",
       from_name_fr: "mateloutre",
@@ -271,6 +262,15 @@ export const regionalEvolutions = {
       condition: "niveau 35 + nuit",
     },
     {
+      from: "mmime",
+      to: "mglaquette",
+      from_name_fr: "m. mime de galar",
+      to_name_fr: "m. glaquette",
+      fromRegion: "galar",
+      toRegion: null,
+      condition: "niveau 42",
+    },
+    {
       from: "corayon",
       to: "corayome",
       from_name_fr: "corayon de galar",
@@ -296,15 +296,6 @@ export const regionalEvolutions = {
       fromRegion: "galar",
       toRegion: null,
       condition: "3 coups critiques dans un même combat",
-    },
-    {
-      from: "mmime",
-      to: "mglaquette",
-      from_name_fr: "m. mime de galar",
-      to_name_fr: "m. glaquette de galar",
-      fromRegion: "galar",
-      toRegion: null,
-      condition: "niveau 42",
     },
   ] as EvolutionRule[],
 
