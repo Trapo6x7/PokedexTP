@@ -65,7 +65,6 @@ export function PokemonEvolutions({
         (e) => e.pokedex_id === currentPokedexId && e.region === currentRegion
       ) || entries.find((e) => e.pokedex_id === currentPokedexId);
 
-      
     if (!currentPokemon) return evolutions;
 
     const currentIsRegional = currentPokemon.region !== null;
@@ -75,82 +74,42 @@ export function PokemonEvolutions({
     // Ensure we always normalize the slug — Tyradex sometimes uses dots like 'm.mime' or 'm.glaquette'.
     const currentRawSlug = currentPokemon.nameSlug ?? currentPokemon.name.fr;
     let currentNameSlug = normalizeName(currentRawSlug);
-    
+
     // Clean up regional suffixes for matching with rules
     const regionalSuffixes = ["dalola", "de galar", "dhisui", "de paldea"];
-    regionalSuffixes.forEach(suffix => {
+    regionalSuffixes.forEach((suffix) => {
       const normalizedSuffix = normalizeName(suffix);
       if (currentNameSlug.endsWith(normalizedSuffix)) {
-        currentNameSlug = currentNameSlug.slice(0, -normalizedSuffix.length).trim();
+        currentNameSlug = currentNameSlug
+          .slice(0, -normalizedSuffix.length)
+          .trim();
       }
     });
 
-    // Dev logs specifically for mglaquette when current is mglaquette
-    if (__DEV__ && currentNameSlug === "mglaquette") {
-      const allRules = [
-        ...regionalEvolutions.normalToNormal,
-        ...regionalEvolutions.normalToRegional,
-        ...regionalEvolutions.regionalToNormal,
-        ...regionalEvolutions.regionalToRegional,
-      ];
-      const rulesForMg = allRules.filter((r) => normalizeName(r.from) === "mglaquette" || normalizeName(r.to) === "mglaquette");
-
-      console.log("[EVO MGCTX] Current mglaquette context", {
-        currentPokemon,
-        currentRegionName,
+    if (__DEV__ && currentNameSlug === "ramoloss") {
+      console.log("=== [RAMOLOSS DEBUG] START ===");
+      console.log("[RAMOLOSS] Current context:", {
+        currentPokedexId,
+        currentRegion,
         currentIsRegional,
-        rulesForMg,
-        currentRawSlug,
-        currentNameSlugNormalized: currentNameSlug,
-      });
-    }
-
-    // Lenient check: if slug contains 'mmime' (ex: 'mmimedegalar') treat as mmime for debug
-    if (__DEV__ && currentNameSlug.includes("mmime") && currentRegionName === "galar") {
-      const allRules = [
-        ...regionalEvolutions.normalToNormal,
-        ...regionalEvolutions.normalToRegional,
-        ...regionalEvolutions.regionalToNormal,
-        ...regionalEvolutions.regionalToRegional,
-      ];
-      const rulesForMmLike = allRules.filter((r) => normalizeName(r.from).includes("mmime") || normalizeName(r.to).includes("mmime"));
-      console.log("[EVO MMCTX-LEV] mmime-like context", { currentNameSlug, currentPokemon, currentRegionName, currentIsRegional, rulesForMmLike });
-    }
-
-    // Lenient check: if slug contains 'mglaquette' (ex: 'm.glaquette') treat as mglaquette for debug
-    if (__DEV__ && currentNameSlug.includes("mglaquette")) {
-      const allRules = [
-        ...regionalEvolutions.normalToNormal,
-        ...regionalEvolutions.normalToRegional,
-        ...regionalEvolutions.regionalToNormal,
-        ...regionalEvolutions.regionalToRegional,
-      ];
-      const rulesForMgLike = allRules.filter((r) => normalizeName(r.from).includes("mglaquette") || normalizeName(r.to).includes("mglaquette"));
-      console.log("[EVO MGCTX-LEV] mglaquette-like context", { currentNameSlug, currentPokemon, currentRegionName, currentIsRegional, rulesForMgLike });
-    }
-
-    // Extra mmime/galar-specific debug logs for deeper tracing
-    if (__DEV__ && currentNameSlug.includes("mmime") && currentRegionName === "galar") {
-      console.log("[EVO MMCTX-GALAR] mmime de Galar - context", {
+        currentRegionName,
         currentNameSlug,
-        currentPokemon,
-        currentRegionName,
-        currentIsRegional,
-        evolutionsCount: evolutions.length,
-        entriesCount: entries.length,
+        isPre,
+        evolutionsReceived: evolutions.length,
       });
-    }
+      console.log("[RAMOLOSS] Evolutions received:", evolutions);
 
-    // Extra mglaquette-specific debug logs (mirror mmime Galar logs) so we can compare
-    if (__DEV__ && currentNameSlug.includes("mglaquette")) {
-      console.log("[EVO MGCTX-GLOBAL] m.glaquette context", {
-        currentNameSlug,
-        currentPokemon,
-        currentRegionName,
-        currentIsRegional,
-        evolutionsCount: evolutions.length,
-        entriesCount: entries.length,
-      });
+      const ramolossRules = [
+        ...regionalEvolutions.normalToNormal,
+        ...regionalEvolutions.normalToRegional,
+        ...regionalEvolutions.regionalToNormal,
+        ...regionalEvolutions.regionalToRegional,
+      ].filter(
+        (r) =>
+          normalizeName(r.from).includes("ramoloss") ||
+          normalizeName(r.to).includes("ramoloss")
+      );
+      console.log("[RAMOLOSS] Related rules:", ramolossRules);
     }
 
     const filtered: EvolutionEntry[] = [];
@@ -165,7 +124,7 @@ export function PokemonEvolutions({
           evoNameSlug = evoNameSlug.slice(0, -normalizedSuffix.length).trim();
         }
       });
-      
+
       // For TYPE 2: Check if current regional form has a different evolution
       // This used to be a single "regionalToDifferent" array; we now support
       // separate mappings for regional->standard and regional->region.
@@ -203,7 +162,7 @@ export function PokemonEvolutions({
           return;
         }
       }
-      
+
       const evoVariants = entries.filter(
         (e) => e.pokedex_id === evo.pokedex_id
       );
@@ -215,14 +174,16 @@ export function PokemonEvolutions({
 
       // Check for regional evolution rules
       // TYPE 1: Standard can evolve to regional form
-      const standardToRegionalRule = regionalEvolutions.normalToRegional.find((re) => {
-        const matchesNames = isPre
-          ? normalizeName(re.to) === currentNameSlug &&
-            normalizeName(re.from) === evoNameSlug
-          : normalizeName(re.from) === currentNameSlug &&
-            normalizeName(re.to) === evoNameSlug;
-        return matchesNames && currentRegionName === null;
-      });
+      const standardToRegionalRule = regionalEvolutions.normalToRegional.find(
+        (re) => {
+          const matchesNames = isPre
+            ? normalizeName(re.to) === currentNameSlug &&
+              normalizeName(re.from) === evoNameSlug
+            : normalizeName(re.from) === currentNameSlug &&
+              normalizeName(re.to) === evoNameSlug;
+          return matchesNames && currentRegionName === null;
+        }
+      );
 
       // Debug: check mglaquette references
       if (__DEV__ && evoNameSlug === "mglaquette") {
@@ -232,18 +193,31 @@ export function PokemonEvolutions({
           currentNameSlug,
           currentRegionName,
           currentIsRegional,
-          evoVariants: evoVariants.map((v) => ({ pokedex_id: v.pokedex_id, region: v.region, name: v.name?.fr, sprites: Boolean(v.sprites) })),
+          evoVariants: evoVariants.map((v) => ({
+            pokedex_id: v.pokedex_id,
+            region: v.region,
+            name: v.name?.fr,
+            sprites: Boolean(v.sprites),
+          })),
           standardToRegionalRule,
         });
       }
 
       // Debug for mmime (target stage or source)
-      if (__DEV__ && currentNameSlug.includes("mmime") && currentRegionName === "galar") {
+      if (
+        __DEV__ &&
+        currentNameSlug.includes("mmime") &&
+        currentRegionName === "galar"
+      ) {
         console.log("[EVO MMBASIC] mmime(galar) - candidate check", {
           evoNameSlug,
           evoPokedexId: evo.pokedex_id,
           evoCondition: evo.condition,
-          evoVariants: evoVariants.map((v) => ({ pokedex_id: v.pokedex_id, region: v.region, name: v.name?.fr })),
+          evoVariants: evoVariants.map((v) => ({
+            pokedex_id: v.pokedex_id,
+            region: v.region,
+            name: v.name?.fr,
+          })),
           isPre,
         });
       }
@@ -254,7 +228,11 @@ export function PokemonEvolutions({
           evoNameSlug,
           evoPokedexId: evo.pokedex_id,
           evoCondition: evo.condition,
-          evoVariants: evoVariants.map((v) => ({ pokedex_id: v.pokedex_id, region: v.region, name: v.name?.fr })),
+          evoVariants: evoVariants.map((v) => ({
+            pokedex_id: v.pokedex_id,
+            region: v.region,
+            name: v.name?.fr,
+          })),
           isPre,
         });
       }
@@ -263,7 +241,11 @@ export function PokemonEvolutions({
       if (__DEV__ && currentNameSlug === "mglaquette") {
         console.log("[EVO MGCTX] current mglaquette -> evolution candidate:", {
           evoNameSlug,
-          evoVariants: evoVariants.map((v) => ({ pokedex_id: v.pokedex_id, region: v.region, name: v.name?.fr })),
+          evoVariants: evoVariants.map((v) => ({
+            pokedex_id: v.pokedex_id,
+            region: v.region,
+            name: v.name?.fr,
+          })),
           currentIsRegional,
           currentRegionName,
         });
@@ -272,7 +254,10 @@ export function PokemonEvolutions({
       // TYPE 2: Regional form evolves to different Pokémon than standard
       // The rule can exist in either regionalToNormal (regional -> standard)
       // or regionalToRegional (regional -> regional).
-      const regionalSpecialRule = [...regionalEvolutions.regionalToNormal, ...regionalEvolutions.regionalToRegional].find((re) => {
+      const regionalSpecialRule = [
+        ...regionalEvolutions.regionalToNormal,
+        ...regionalEvolutions.regionalToRegional,
+      ].find((re) => {
         const matchesNames = isPre
           ? normalizeName(re.to) === currentNameSlug &&
             normalizeName(re.from) === evoNameSlug
@@ -284,24 +269,36 @@ export function PokemonEvolutions({
         return matchesNames && matchesRegion;
       });
 
-
       // Check if this evolution is mentioned in any regional rule
       const hasAnyRegionalRule = [
         ...regionalEvolutions.normalToRegional,
         ...regionalEvolutions.regionalToNormal,
         ...regionalEvolutions.regionalToRegional,
-      ].some((re) =>
-        (normalizeName(re.from) === currentNameSlug || normalizeName(re.to) === currentNameSlug) ||
-        (normalizeName(re.from) === evoNameSlug || normalizeName(re.to) === evoNameSlug)
+      ].some(
+        (re) =>
+          normalizeName(re.from) === currentNameSlug ||
+          normalizeName(re.to) === currentNameSlug ||
+          normalizeName(re.from) === evoNameSlug ||
+          normalizeName(re.to) === evoNameSlug
       );
 
       // Apply TYPE 1 rule: Standard Pokémon can evolve to regional form
       if (standardToRegionalRule) {
         if (__DEV__ && currentNameSlug.includes("mglaquette")) {
-          console.log("[EVO MGCTX-GLOBAL] standardToRegionalRule for mglaquette", { standardToRegionalRule, evoNameSlug });
+          console.log(
+            "[EVO MGCTX-GLOBAL] standardToRegionalRule for mglaquette",
+            { standardToRegionalRule, evoNameSlug }
+          );
         }
-        if (__DEV__ && currentNameSlug.includes("mmime") && currentRegionName === "galar") {
-          console.log("[EVO MMCTX-GALAR] standardToRegionalRule fired for mmime(galar)", { standardToRegionalRule, evoNameSlug });
+        if (
+          __DEV__ &&
+          currentNameSlug.includes("mmime") &&
+          currentRegionName === "galar"
+        ) {
+          console.log(
+            "[EVO MMCTX-GALAR] standardToRegionalRule fired for mmime(galar)",
+            { standardToRegionalRule, evoNameSlug }
+          );
         }
         // Show both standard AND regional evolution
         evoVariants.forEach((variant) => {
@@ -318,27 +315,57 @@ export function PokemonEvolutions({
       // Apply TYPE 2 rule: Regional form evolves differently
       if (regionalSpecialRule) {
         if (__DEV__ && currentNameSlug.includes("mglaquette")) {
-          console.log("[EVO MGCTX-GLOBAL] regionalSpecialRule matched for mglaquette", { regionalSpecialRule, evoNameSlug });
+          console.log(
+            "[EVO MGCTX-GLOBAL] regionalSpecialRule matched for mglaquette",
+            { regionalSpecialRule, evoNameSlug }
+          );
         }
-        if (__DEV__ && currentNameSlug.includes("mmime") && currentRegionName === "galar") {
-          console.log("[EVO MMCTX-GALAR] regionalSpecialRule matched for mmime(galar)", { regionalSpecialRule, evoNameSlug });
+        if (
+          __DEV__ &&
+          currentNameSlug.includes("mmime") &&
+          currentRegionName === "galar"
+        ) {
+          console.log(
+            "[EVO MMCTX-GALAR] regionalSpecialRule matched for mmime(galar)",
+            { regionalSpecialRule, evoNameSlug }
+          );
         }
-        const targetRegion = isPre ? regionalSpecialRule.fromRegion : regionalSpecialRule.toRegion;
-        const targetVariant = evoVariants.find((v) => (v.region ?? null) === targetRegion);
-        
+        const targetRegion = isPre
+          ? regionalSpecialRule.fromRegion
+          : regionalSpecialRule.toRegion;
+        const targetVariant = evoVariants.find(
+          (v) => (v.region ?? null) === targetRegion
+        );
+
         if (targetVariant) {
           if (__DEV__ && currentNameSlug.includes("mglaquette")) {
-            console.log("[EVO MGCTX-GLOBAL] regionalSpecial target resolved for mglaquette", { targetVariant });
+            console.log(
+              "[EVO MGCTX-GLOBAL] regionalSpecial target resolved for mglaquette",
+              { targetVariant }
+            );
           }
-          if (__DEV__ && currentNameSlug.includes("mmime") && currentRegionName === "galar") {
-            console.log("[EVO MMCTX-GALAR] regionalSpecial target resolved for mmime(galar)", { targetVariant });
+          if (
+            __DEV__ &&
+            currentNameSlug.includes("mmime") &&
+            currentRegionName === "galar"
+          ) {
+            console.log(
+              "[EVO MMCTX-GALAR] regionalSpecial target resolved for mmime(galar)",
+              { targetVariant }
+            );
           }
           if (__DEV__ && evoNameSlug === "mglaquette") {
-            console.log("[EVO MG] regionalSpecial targetVariant", { targetVariant, targetRegion });
+            console.log("[EVO MG] regionalSpecial targetVariant", {
+              targetVariant,
+              targetRegion,
+            });
           }
           if (__DEV__) {
             const spriteFromEntry = targetVariant?.sprites?.regular ?? null;
-            const artworkUrl = getPokemonArtwork(targetVariant.pokedex_id, targetVariant.region ?? null);
+            const artworkUrl = getPokemonArtwork(
+              targetVariant.pokedex_id,
+              targetVariant.region ?? null
+            );
           }
           filtered.push({
             ...evo,
@@ -350,7 +377,6 @@ export function PokemonEvolutions({
         return;
       }
 
-
       // If there's a regional rule but it doesn't match current region, skip this evolution
       if (hasAnyRegionalRule && currentIsRegional) {
         const relatedRules = [
@@ -358,18 +384,24 @@ export function PokemonEvolutions({
           ...regionalEvolutions.regionalToNormal,
           ...regionalEvolutions.regionalToRegional,
         ].filter((re) => {
-          const fromMatches = normalizeName(re.from) === currentNameSlug || normalizeName(re.from) === evoNameSlug;
-          const toMatches = normalizeName(re.to) === currentNameSlug || normalizeName(re.to) === evoNameSlug;
+          const fromMatches =
+            normalizeName(re.from) === currentNameSlug ||
+            normalizeName(re.from) === evoNameSlug;
+          const toMatches =
+            normalizeName(re.to) === currentNameSlug ||
+            normalizeName(re.to) === evoNameSlug;
           return fromMatches || toMatches;
         });
 
         const hasRuleForCurrentRegion = relatedRules.some((re) => {
-            const fromRegionMatches = 'fromRegion' in re && (re as any).fromRegion === currentRegionName;
-            const toRegionMatches = 'toRegion' in re && (re as any).toRegion === currentRegionName;
-            const regionMatches = 'region' in re && (re as any).region === currentRegionName;
-            return fromRegionMatches || toRegionMatches || regionMatches;
+          const fromRegionMatches =
+            "fromRegion" in re && (re as any).fromRegion === currentRegionName;
+          const toRegionMatches =
+            "toRegion" in re && (re as any).toRegion === currentRegionName;
+          const regionMatches =
+            "region" in re && (re as any).region === currentRegionName;
+          return fromRegionMatches || toRegionMatches || regionMatches;
         });
-
 
         if (!hasRuleForCurrentRegion) {
           // This regional form has a special rule that doesn't apply here
@@ -383,7 +415,9 @@ export function PokemonEvolutions({
         const regionalMatch = evoVariants.find(
           (v) => (v.region ?? null) === currentRegionName
         );
-        const standardMatch = evoVariants.find((v) => (v.region ?? null) === null);
+        const standardMatch = evoVariants.find(
+          (v) => (v.region ?? null) === null
+        );
 
         if (regionalMatch) {
           // Si une variante régionale existe, l'afficher uniquement
@@ -408,7 +442,9 @@ export function PokemonEvolutions({
         // Consider evolution exclusive to regional forms only if:
         // - a rule exists that maps a regional form to this evolution, AND
         // - there is no standard variant available in entries
-           const hasStandardVariant = evoVariants.some((v) => (v.region ?? null) === null);
+        const hasStandardVariant = evoVariants.some(
+          (v) => (v.region ?? null) === null
+        );
 
         const isTargetMentionedInRegionalRules = [
           ...regionalEvolutions.normalToRegional,
@@ -422,25 +458,88 @@ export function PokemonEvolutions({
           ...regionalEvolutions.normalToRegional,
           ...regionalEvolutions.regionalToNormal,
           ...regionalEvolutions.regionalToRegional,
-        ].filter((re) => normalizeName(re.from) === currentNameSlug || normalizeName(re.to) === currentNameSlug || normalizeName(re.from) === evoNameSlug || normalizeName(re.to) === evoNameSlug);
+        ].filter(
+          (re) =>
+            normalizeName(re.from) === currentNameSlug ||
+            normalizeName(re.to) === currentNameSlug ||
+            normalizeName(re.from) === evoNameSlug ||
+            normalizeName(re.to) === evoNameSlug
+        );
 
-        const requiresRegionalFrom = relatedRulesForTarget.some((re) => ('fromRegion' in re) && (re as any).fromRegion !== null && normalizeName(re.from) === currentNameSlug);
+        // Check if there's a rule that explicitly requires a regional variant of the current Pokémon
+        // to evolve into this specific target
+        // The rule should only apply if it targets a regional destination that matches the evolution
+        const requiresRegionalFrom = relatedRulesForTarget.some((re) => {
+          const fromMatches = normalizeName(re.from) === currentNameSlug;
+          const toMatches = normalizeName(re.to) === evoNameSlug;
+          const hasRegionalFrom = "fromRegion" in re && (re as any).fromRegion !== null;
+          
+          if (!fromMatches || !toMatches || !hasRegionalFrom) return false;
+          
+          // Check if this rule targets a regional variant
+          const ruleToRegion = "toRegion" in re ? (re as any).toRegion : null;
+          
+          // If the rule targets a regional variant (e.g., Flagadoss de Galar),
+          // it should only block the standard evolution if the evolution from the API
+          // doesn't have a standard variant, OR if the API evolution explicitly mentions a region
+          
+          // Check if the evolution name from API contains regional indicators
+          const evoNameLower = (evo.name || "").toLowerCase();
+          const hasRegionalSuffixInName = [
+            "d'alola",
+            "de galar", 
+            "d'hisui",
+            "de paldea"
+          ].some(suffix => evoNameLower.includes(suffix));
+          
+          // Only block if both the rule targets a region AND the evolution name suggests it's regional
+          // OR if there's no standard variant available
+          const evoHasStandardVariant = evoVariants.some(v => v.region === null);
+          
+          return ruleToRegion !== null && (hasRegionalSuffixInName || !evoHasStandardVariant);
+        });
+
+        if (__DEV__ && currentNameSlug === "ramoloss") {
+          console.log("[RAMOLOSS] Processing evolution (standard):", {
+            evoNameSlug,
+            evoName: evo.name,
+            evoPokedexId: evo.pokedex_id,
+            hasStandardVariant,
+            evoVariants: evoVariants.map(v => ({ pokedex_id: v.pokedex_id, region: v.region, name: v.name?.fr })),
+            requiresRegionalFrom,
+            relatedRulesForTarget: relatedRulesForTarget.map((r) => ({
+              from: r.from,
+              fromRegion: r.fromRegion,
+              to: r.to,
+              toRegion: r.toRegion,
+            })),
+            willSkip: requiresRegionalFrom && !currentIsRegional,
+          });
+        }
 
         if (requiresRegionalFrom && !currentIsRegional) {
           // This evolution only applies to a regional form of the current Pokémon
           // and the current form is standard -> hide it.
+          if (__DEV__ && currentNameSlug === "ramoloss") {
+            console.log(
+              "[RAMOLOSS] ❌ Skipping evolution - requires regional form"
+            );
+          }
           return;
         }
 
-        const isExclusiveToRegional = isTargetMentionedInRegionalRules && !hasStandardVariant;
+        const isExclusiveToRegional =
+          isTargetMentionedInRegionalRules && !hasStandardVariant;
 
         if (isExclusiveToRegional) {
           // Cette évolution est exclusive à une forme régionale, ne pas l'afficher
           return;
         }
 
-        const standardMatch = evoVariants.find((v) => (v.region ?? null) === null);
-        
+        const standardMatch = evoVariants.find(
+          (v) => (v.region ?? null) === null
+        );
+
         if (standardMatch) {
           filtered.push({
             pokedex_id: standardMatch.pokedex_id,
@@ -481,13 +580,25 @@ export function PokemonEvolutions({
     preRaw = [preRaw[preRaw.length - 1]]; // Garder seulement le dernier (le plus proche)
   }
 
-  const preFinal = filterEvolutionsByRegion(
-    Array.isArray(preRaw) ? preRaw : [],
-    true // isPre = true pour les pré-évolutions
+  // Deduplicate evolutions by pokedex_id + region + name
+  const deduplicateEvolutions = (evos: EvolutionEntry[]): EvolutionEntry[] => {
+    const seen = new Set<string>();
+    return evos.filter((evo) => {
+      // Use name in addition to pokedex_id to handle synthetic entries
+      const key = `${evo.pokedex_id}-${evo.region ?? "null"}-${normalizeName(
+        evo.name
+      )}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
+
+  const preFinal = deduplicateEvolutions(
+    filterEvolutionsByRegion(Array.isArray(preRaw) ? preRaw : [], true)
   );
-  const nextFinal = filterEvolutionsByRegion(
-    Array.isArray(nextRaw) ? nextRaw : [],
-    false // isPre = false pour les évolutions suivantes
+  const nextFinal = deduplicateEvolutions(
+    filterEvolutionsByRegion(Array.isArray(nextRaw) ? nextRaw : [], false)
   );
 
   // Fix: if a regional rule maps current regional -> target, but the API
@@ -496,31 +607,54 @@ export function PokemonEvolutions({
   // returned M. Glaquette in pre instead of next.
   if (__DEV__) {
     // Only run for regional forms
-    const maybeMoveFromPreToNext = (curSlug: string, curRegion: string | null) => {
+    const maybeMoveFromPreToNext = (
+      curSlug: string,
+      curRegion: string | null
+    ) => {
       const forwardRules = [
         ...regionalEvolutions.regionalToNormal,
         ...regionalEvolutions.regionalToRegional,
-      ].filter((r) => normalizeName(r.from) === curSlug && (r.fromRegion ?? null) === curRegion);
+      ].filter(
+        (r) =>
+          normalizeName(r.from) === curSlug &&
+          (r.fromRegion ?? null) === curRegion
+      );
 
       if (forwardRules.length === 0) return; // none to check
 
       forwardRules.forEach((r) => {
         const targetSlug = normalizeName(r.to);
-        const preIndex = preFinal.findIndex((p) => normalizeName(p.name) === targetSlug);
+        const preIndex = preFinal.findIndex(
+          (p) => normalizeName(p.name) === targetSlug
+        );
         if (preIndex >= 0) {
           const moved = preFinal.splice(preIndex, 1)[0];
           // adjust region if rule indicates a target region
           moved.region = r.toRegion ?? moved.region;
           nextFinal.push(moved);
-          console.log("[EVO FIX] Moved evolution from pre->next due to regional rule", { from: r.from, fromRegion: r.fromRegion, to: r.to, toRegion: r.toRegion, moved });
+          console.log(
+            "[EVO FIX] Moved evolution from pre->next due to regional rule",
+            {
+              from: r.from,
+              fromRegion: r.fromRegion,
+              to: r.to,
+              toRegion: r.toRegion,
+              moved,
+            }
+          );
         }
       });
     };
 
     // Get the current slug and region from the entries (repeat minimal logic used above)
-    const currentPokemon = entries.find((e) => e.pokedex_id === currentPokedexId && e.region === currentRegion) || entries.find((e) => e.pokedex_id === currentPokedexId);
+    const currentPokemon =
+      entries.find(
+        (e) => e.pokedex_id === currentPokedexId && e.region === currentRegion
+      ) || entries.find((e) => e.pokedex_id === currentPokedexId);
     if (currentPokemon) {
-      const currentSlug = normalizeName(currentPokemon.nameSlug || currentPokemon.name.fr);
+      const currentSlug = normalizeName(
+        currentPokemon.nameSlug || currentPokemon.name.fr
+      );
       maybeMoveFromPreToNext(currentSlug, currentPokemon.region ?? null);
 
       // Ensure forward regional rules create a next evolution if it's missing
@@ -528,20 +662,90 @@ export function PokemonEvolutions({
       const forwardRulesEnsure = [
         ...regionalEvolutions.regionalToNormal,
         ...regionalEvolutions.regionalToRegional,
-      ].filter((r) => normalizeName(r.from) === currentSlug && (r.fromRegion ?? null) === (currentPokemon.region ?? null));
+      ].filter(
+        (r) =>
+          normalizeName(r.from) === currentSlug &&
+          (r.fromRegion ?? null) === (currentPokemon.region ?? null)
+      );
 
       forwardRulesEnsure.forEach((r) => {
         const targetSlug = normalizeName(r.to);
-        const alreadyInNext = nextFinal.some((n) => normalizeName(n.name) === targetSlug);
-        if (alreadyInNext) return; // nothing to inject
-
+        
         // Try to find a matching variant in entries (correct pokedex_id and region)
         const targetVariant = entries.find((v) => {
-          // normalize variant slug the same way
-          const vSlug = normalizeName(v.name?.fr);
+          // Use nameSlug when available, otherwise normalize the name and strip regional suffixes
+          let vSlug = v.nameSlug ? normalizeName(v.nameSlug) : normalizeName(v.name?.fr);
+          
+          // Strip regional suffixes for matching
+          const regionalSuffixes = ["dalola", "degalar", "dhisui", "depaldea"];
+          regionalSuffixes.forEach((suffix) => {
+            if (vSlug.endsWith(suffix)) {
+              vSlug = vSlug.slice(0, -suffix.length).trim();
+            }
+          });
+          
           const regionMatch = (r.toRegion ?? null) === (v.region ?? null);
           return vSlug === targetSlug && regionMatch;
         });
+
+        if (__DEV__ && currentSlug === "ramoloss") {
+          // Debug: find all entries matching target slug
+          const allFlagadoss = entries.filter((e) =>
+            normalizeName(e.name?.fr).includes("flagadoss")
+          );
+          const allRoigada = entries.filter((e) =>
+            normalizeName(e.name?.fr).includes("roigada")
+          );
+
+          console.log("[RAMOLOSS EVO CHECK] Checking rule:", {
+            rule: r,
+            targetSlug,
+            targetVariant: targetVariant
+              ? {
+                  pokedex_id: targetVariant.pokedex_id,
+                  name: targetVariant.name?.fr,
+                  region: targetVariant.region,
+                }
+              : null,
+            allFlagadossFound: allFlagadoss.map((e) => ({
+              pokedex_id: e.pokedex_id,
+              name: e.name?.fr,
+              region: e.region,
+              nameSlug: e.nameSlug,
+            })),
+            allRoigadaFound: allRoigada.map((e) => ({
+              pokedex_id: e.pokedex_id,
+              name: e.name?.fr,
+              region: e.region,
+              nameSlug: e.nameSlug,
+            })),
+            nextFinalCount: nextFinal.length,
+            nextFinalItems: nextFinal.map((n) => ({
+              pokedex_id: n.pokedex_id,
+              name: n.name,
+              region: n.region,
+            })),
+          });
+        }
+
+        // Check if already in nextFinal by pokedex_id + region to avoid duplicates
+        const alreadyInNext = nextFinal.some(
+          (n) =>
+            targetVariant &&
+            n.pokedex_id === targetVariant.pokedex_id &&
+            (n.region ?? null) === (targetVariant.region ?? null)
+        );
+        
+        if (alreadyInNext) {
+          if (__DEV__) {
+            console.log("[EVO SKIP] Evolution already exists in nextFinal", {
+              from: r.from,
+              to: r.to,
+              targetVariant,
+            });
+          }
+          return; // nothing to inject
+        }
 
         if (targetVariant) {
           nextFinal.push({
@@ -552,7 +756,13 @@ export function PokemonEvolutions({
           });
 
           if (__DEV__) {
-            console.log("[EVO ADD] Added forward target from regional rule", { from: r.from, fromRegion: r.fromRegion, to: r.to, toRegion: r.toRegion, targetVariant });
+            console.log("[EVO ADD] Added forward target from regional rule", {
+              from: r.from,
+              fromRegion: r.fromRegion,
+              to: r.to,
+              toRegion: r.toRegion,
+              targetVariant,
+            });
           }
           return;
         }
@@ -566,7 +776,9 @@ export function PokemonEvolutions({
         });
 
         if (__DEV__) {
-          console.log("[EVO ADD] Synthetic next added for missing target", { rule: r });
+          console.log("[EVO ADD] Synthetic next added for missing target", {
+            rule: r,
+          });
         }
       });
     }
@@ -576,7 +788,11 @@ export function PokemonEvolutions({
   if (__DEV__) {
     const spriteLog = (label: string, list: EvolutionEntry[]) => {
       const data = list.map((e) => {
-        const entryVariant = entries.find((v) => v.pokedex_id === e.pokedex_id && (v.region ?? null) === (e.region ?? null));
+        const entryVariant = entries.find(
+          (v) =>
+            v.pokedex_id === e.pokedex_id &&
+            (v.region ?? null) === (e.region ?? null)
+        );
         const spriteFromEntry = entryVariant?.sprites?.regular ?? null;
         const artworkUrl = getPokemonArtwork(e.pokedex_id, e.region ?? null);
         return {
@@ -626,7 +842,9 @@ export function PokemonEvolutions({
               <Row gap={8}>
                 {preFinal.map((p) => (
                   <PokemonEvo
-                    key={`pre-${p.pokedex_id}-${p.region || "standard"}`}
+                    key={`pre-${p.pokedex_id}-${
+                      p.region || "standard"
+                    }-${normalizeName(p.name)}`}
                     pokedex_id={p.pokedex_id}
                     name={p.name}
                     condition={p.condition}
@@ -673,7 +891,9 @@ export function PokemonEvolutions({
             <Row gap={8}>
               {nextFinal.map((n) => (
                 <PokemonEvo
-                  key={`next-${n.pokedex_id}-${n.region || "standard"}`}
+                  key={`next-${n.pokedex_id}-${
+                    n.region || "standard"
+                  }-${normalizeName(n.name)}`}
                   pokedex_id={n.pokedex_id}
                   name={n.name}
                   condition={n.condition}
@@ -707,7 +927,9 @@ export function PokemonEvolutions({
         <Row gap={8}>
           {evolutionsToShow.map((evo) => (
             <PokemonEvo
-              key={`evo-${evo.pokedex_id}-${evo.region || "standard"}`}
+              key={`evo-${evo.pokedex_id}-${
+                evo.region || "standard"
+              }-${normalizeName(evo.name)}`}
               pokedex_id={evo.pokedex_id}
               name={evo.name}
               condition={evo.condition}
